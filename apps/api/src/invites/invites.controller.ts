@@ -14,7 +14,7 @@ import {
 } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
-import { WorkspaceGuard } from '../common/guards/workspace.guard.js';
+import { RequiresWorkspaceGuard } from '../common/guards/workspace.guard.js';
 import { RolesGuard } from '../common/guards/roles.guard.js';
 import { Roles } from '../common/decorators/roles.decorator.js';
 import { WorkspaceId } from '../common/decorators/workspace.decorator.js';
@@ -32,21 +32,17 @@ export class InvitesController {
   constructor(private readonly invitesService: InvitesService) {}
 
   @Get()
-  @UseGuards(JwtAuthGuard, WorkspaceGuard, RolesGuard)
+  @UseGuards(JwtAuthGuard, RequiresWorkspaceGuard, RolesGuard)
   @Roles(Role.BROKER)
   findAll(
     @WorkspaceId() workspaceId: string,
     @Query() query: PaginationQueryDto,
   ) {
-    return this.invitesService.findAll(
-      workspaceId,
-      query.page,
-      query.limit,
-    );
+    return this.invitesService.findAll(workspaceId, query.page, query.limit);
   }
 
   @Post()
-  @UseGuards(JwtAuthGuard, WorkspaceGuard, RolesGuard)
+  @UseGuards(JwtAuthGuard, RequiresWorkspaceGuard, RolesGuard)
   @Roles(Role.BROKER)
   async create(
     @Body() dto: CreateInviteDto,
@@ -79,7 +75,7 @@ export class InvitesController {
 
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
-  @UseGuards(JwtAuthGuard, WorkspaceGuard, RolesGuard)
+  @UseGuards(JwtAuthGuard, RequiresWorkspaceGuard, RolesGuard)
   @Roles(Role.BROKER)
   revoke(
     @Param('id', ParseUUIDPipe) id: string,

@@ -6,6 +6,7 @@ import {
   Between,
   LessThanOrEqual,
   MoreThanOrEqual,
+  ILike,
 } from 'typeorm';
 import { Listing } from '../entities/listing.entity.js';
 import { CreateListingDto } from './dto/create-listing.dto.js';
@@ -33,7 +34,7 @@ export class ListingsService {
     const where: FindOptionsWhere<Listing> = { workspaceId };
     if (filters.status) where.status = filters.status;
     if (filters.agentId) where.listingAgentId = filters.agentId;
-    if (filters.city) where.city = filters.city;
+    if (filters.city) where.city = ILike(filters.city);
 
     if (filters.minPrice !== undefined && filters.maxPrice !== undefined) {
       where.price = Between(filters.minPrice, filters.maxPrice);

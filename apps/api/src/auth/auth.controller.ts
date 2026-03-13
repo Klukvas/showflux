@@ -19,6 +19,8 @@ import { LoginDto } from './dto/login.dto.js';
 import { ForgotPasswordDto } from './dto/forgot-password.dto.js';
 import { ResetPasswordDto } from './dto/reset-password.dto.js';
 import { User } from '../entities/user.entity.js';
+import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
+import { CurrentUser } from '../common/decorators/current-user.decorator.js';
 
 const REFRESH_COOKIE = 'refresh_token';
 const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
@@ -68,7 +70,12 @@ export class AuthController {
 
   @Post('logout')
   @HttpCode(HttpStatus.OK)
-  logout(@Res({ passthrough: true }) res: Response) {
+  @UseGuards(JwtAuthGuard)
+  async logout(
+    @CurrentUser('id') userId: string,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    await this.authService.logout(userId);
     res.clearCookie(REFRESH_COOKIE, {
       httpOnly: true,
       secure: true,

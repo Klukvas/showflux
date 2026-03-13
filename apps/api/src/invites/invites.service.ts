@@ -115,14 +115,14 @@ export class InvitesService {
         lock: { mode: 'pessimistic_write' },
       });
       if (!invite) {
-        throw new NotFoundException('Invite not found or already used');
+        throw new BadRequestException('Invalid or expired invite');
       }
 
       if (new Date() > invite.expiresAt) {
         await manager.update(Invite, invite.id, {
           status: InviteStatus.EXPIRED,
         });
-        throw new BadRequestException('Invite has expired');
+        throw new BadRequestException('Invalid or expired invite');
       }
 
       const existingUser = await manager.findOne(User, {

@@ -3,7 +3,8 @@ import { Module } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
+import { ThrottlerModule } from '@nestjs/throttler';
+import { ThrottlerBehindProxyGuard } from './common/guards/throttler-behind-proxy.guard.js';
 import { AuthModule } from './auth/auth.module.js';
 import { WorkspaceModule } from './workspace/workspace.module.js';
 import { UsersModule } from './users/users.module.js';
@@ -50,7 +51,9 @@ import { Activity } from './entities/activity.entity.js';
           PasswordReset,
           Activity,
         ],
-        synchronize: configService.get<string>('NODE_ENV') === 'development',
+        synchronize:
+          configService.get<string>('NODE_ENV') === 'development' &&
+          configService.get<string>('ALLOW_SCHEMA_SYNC') === 'true',
       }),
     }),
     AuthModule,
@@ -64,6 +67,6 @@ import { Activity } from './entities/activity.entity.js';
     ActivityModule,
     HealthModule,
   ],
-  providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
+  providers: [{ provide: APP_GUARD, useClass: ThrottlerBehindProxyGuard }],
 })
 export class AppModule {}

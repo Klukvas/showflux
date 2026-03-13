@@ -5,13 +5,21 @@ import { join } from 'node:path';
 
 config({ path: join(__dirname, '..', '..', '..', '.env') });
 
+function requireEnv(name: string): string {
+  const value = process.env[name];
+  if (!value) {
+    throw new Error(`Missing required environment variable: ${name}`);
+  }
+  return value;
+}
+
 export const AppDataSource = new DataSource({
   type: 'postgres',
-  host: process.env.DATABASE_HOST ?? 'localhost',
+  host: requireEnv('DATABASE_HOST'),
   port: parseInt(process.env.DATABASE_PORT ?? '5432', 10),
-  username: process.env.DATABASE_USER ?? 'showflux',
-  password: process.env.DATABASE_PASSWORD ?? 'showflux_dev',
-  database: process.env.DATABASE_NAME ?? 'showflux',
+  username: requireEnv('DATABASE_USER'),
+  password: requireEnv('DATABASE_PASSWORD'),
+  database: requireEnv('DATABASE_NAME'),
   entities: [join(__dirname, 'entities', '*.entity.{ts,js}')],
   migrations: [join(__dirname, 'migrations', '*.{ts,js}')],
   synchronize: false,

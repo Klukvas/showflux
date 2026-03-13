@@ -12,7 +12,7 @@ import {
   HttpStatus,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
-import { WorkspaceGuard } from '../common/guards/workspace.guard.js';
+import { RequiresWorkspaceGuard } from '../common/guards/workspace.guard.js';
 import { RolesGuard } from '../common/guards/roles.guard.js';
 import { CurrentUser } from '../common/decorators/current-user.decorator.js';
 import { WorkspaceId } from '../common/decorators/workspace.decorator.js';
@@ -52,7 +52,7 @@ export class UsersController {
   }
 
   @Get()
-  @UseGuards(WorkspaceGuard, RolesGuard)
+  @UseGuards(RequiresWorkspaceGuard, RolesGuard)
   @Roles(Role.BROKER)
   findAll(
     @WorkspaceId() workspaceId: string,
@@ -66,7 +66,7 @@ export class UsersController {
   }
 
   @Patch(':id/deactivate')
-  @UseGuards(WorkspaceGuard, RolesGuard)
+  @UseGuards(RequiresWorkspaceGuard, RolesGuard)
   @Roles(Role.BROKER)
   deactivate(
     @Param('id', ParseUUIDPipe) id: string,
@@ -77,7 +77,7 @@ export class UsersController {
   }
 
   @Patch(':id/reactivate')
-  @UseGuards(WorkspaceGuard, RolesGuard)
+  @UseGuards(RequiresWorkspaceGuard, RolesGuard)
   @Roles(Role.BROKER)
   reactivate(
     @Param('id', ParseUUIDPipe) id: string,

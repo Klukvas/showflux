@@ -19,7 +19,8 @@ import { Plan } from '../common/enums/plan.enum.js';
 import { RegisterDto } from './dto/register.dto.js';
 
 const BCRYPT_ROUNDS = 12;
-const DUMMY_HASH = '$2b$12$000000000000000000000uGlBcfGFG50mCEdvLqMgaHNJD4qjzSsO';
+const DUMMY_HASH =
+  '$2b$12$000000000000000000000uGlBcfGFG50mCEdvLqMgaHNJD4qjzSsO';
 const RESET_TOKEN_EXPIRY_HOURS = 1;
 
 function hashToken(raw: string): string {
@@ -31,6 +32,7 @@ export interface JwtPayload {
   email: string;
   role: string;
   workspaceId: string;
+  tokenVersion: number;
   type: 'access' | 'refresh';
 }
 
@@ -127,6 +129,10 @@ export class AuthService {
         throw new UnauthorizedException('User not found or inactive');
       }
 
+      if (payload.tokenVersion !== user.tokenVersion) {
+        throw new UnauthorizedException('Token has been revoked');
+      }
+
       const accessToken = this.generateAccessToken(user);
       return { accessToken };
     } catch (error) {
@@ -135,6 +141,10 @@ export class AuthService {
       }
       throw new UnauthorizedException('Invalid refresh token');
     }
+  }
+
+  async logout(userId: string): Promise<void> {
+    await this.userRepo.increment({ id: userId }, 'tokenVersion', 1);
   }
 
   async requestPasswordReset(email: string): Promise<void> {
@@ -157,9 +167,7 @@ export class AuthService {
 
     const isDev = this.configService.get('NODE_ENV') !== 'production';
     if (isDev) {
-      this.logger.log(
-        `Password reset token for ${email}: ${rawToken}`,
-      );
+      this.logger.log(`Password reset token for ${email}: ${rawToken}`);
     }
   }
 
@@ -181,6 +189,7 @@ export class AuthService {
 
       const passwordHash = await bcrypt.hash(newPassword, BCRYPT_ROUNDS);
       await manager.update(User, reset.userId, { passwordHash });
+      await manager.increment(User, { id: reset.userId }, 'tokenVersion', 1);
 
       // Mark ALL pending tokens for this user as used
       await manager
@@ -223,12 +232,13 @@ export class AuthService {
   private buildPayload(
     user: User,
     type: 'access' | 'refresh',
-  ): Record<string, string> {
+  ): Record<string, string | number> {
     return {
       sub: user.id,
       email: user.email,
       role: user.role,
       workspaceId: user.workspaceId,
+      tokenVersion: user.tokenVersion,
       type,
     };
   }

@@ -13,7 +13,7 @@ import {
   HttpStatus,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
-import { WorkspaceGuard } from '../common/guards/workspace.guard.js';
+import { RequiresWorkspaceGuard } from '../common/guards/workspace.guard.js';
 import { RolesGuard } from '../common/guards/roles.guard.js';
 import { WorkspaceId } from '../common/decorators/workspace.decorator.js';
 import { CurrentUser } from '../common/decorators/current-user.decorator.js';
@@ -25,7 +25,7 @@ import { UpdateListingDto } from './dto/update-listing.dto.js';
 import { ListingFilterDto } from './dto/listing-filter.dto.js';
 
 @Controller('listings')
-@UseGuards(JwtAuthGuard, WorkspaceGuard, RolesGuard)
+@UseGuards(JwtAuthGuard, RequiresWorkspaceGuard, RolesGuard)
 export class ListingsController {
   constructor(private readonly listingsService: ListingsService) {}
 
