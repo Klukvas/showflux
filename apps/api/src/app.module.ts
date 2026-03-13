@@ -10,11 +10,13 @@ import { UsersModule } from './users/users.module.js';
 import { ListingsModule } from './listings/listings.module.js';
 import { ShowingsModule } from './showings/showings.module.js';
 import { OffersModule } from './offers/offers.module.js';
+import { InvitesModule } from './invites/invites.module.js';
 import { Workspace } from './entities/workspace.entity.js';
 import { User } from './entities/user.entity.js';
 import { Listing } from './entities/listing.entity.js';
 import { Showing } from './entities/showing.entity.js';
 import { Offer } from './entities/offer.entity.js';
+import { Invite } from './entities/invite.entity.js';
 
 @Module({
   imports: [
@@ -33,7 +35,7 @@ import { Offer } from './entities/offer.entity.js';
         username: configService.getOrThrow<string>('DATABASE_USER'),
         password: configService.getOrThrow<string>('DATABASE_PASSWORD'),
         database: configService.getOrThrow<string>('DATABASE_NAME'),
-        entities: [Workspace, User, Listing, Showing, Offer],
+        entities: [Workspace, User, Listing, Showing, Offer, Invite],
         synchronize: configService.get<string>('NODE_ENV') === 'development',
       }),
     }),
@@ -43,6 +45,7 @@ import { Offer } from './entities/offer.entity.js';
     ListingsModule,
     ShowingsModule,
     OffersModule,
+    InvitesModule,
   ],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
 })
