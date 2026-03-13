@@ -33,16 +33,14 @@ export class InvitesService {
     private readonly dataSource: DataSource,
   ) {}
 
-  async findAll(
-    workspaceId: string,
-    page = 1,
-    limit = 50,
-  ): Promise<Invite[]> {
+  async findAll(workspaceId: string, page = 1, limit = 50): Promise<Invite[]> {
+    const safePage = Math.max(1, page);
+    const safeLimit = Math.min(limit, 100);
     return this.inviteRepo.find({
       where: { workspaceId },
       order: { createdAt: 'DESC' },
-      take: Math.min(limit, 100),
-      skip: (page - 1) * limit,
+      take: safeLimit,
+      skip: (safePage - 1) * safeLimit,
     });
   }
 
@@ -100,15 +98,15 @@ export class InvitesService {
       }
 
       if (new Date() > invite.expiresAt) {
-        await manager.save(Invite, {
-          ...invite,
+        // Update outside transaction so it persists even when we throw
+        await this.inviteRepo.update(invite.id, {
           status: InviteStatus.EXPIRED,
         });
         throw new BadRequestException('Invite has expired');
       }
 
       const existingUser = await manager.findOne(User, {
-        where: { email: invite.email },
+        where: { email: invite.email, workspaceId: invite.workspaceId },
       });
       if (existingUser) {
         throw new ConflictException('Account already exists with this email');
@@ -157,10 +155,9 @@ export class InvitesService {
       throw new NotFoundException('Pending invite not found');
     }
 
-    const revoked = this.inviteRepo.create({
-      ...invite,
+    await this.inviteRepo.update(invite.id, {
       status: InviteStatus.REVOKED,
     });
-    return this.inviteRepo.save(revoked);
+    return { ...invite, status: InviteStatus.REVOKED } as Invite;
   }
 }

@@ -15,6 +15,10 @@ import { User } from './user.entity.js';
 @Entity('invites')
 @Index('idx_invites_token', ['token'], { unique: true })
 @Index('idx_invites_workspace_id', ['workspaceId'])
+@Index('idx_invites_workspace_email_pending', ['workspaceId', 'email'], {
+  unique: true,
+  where: `"status" = 'pending'`,
+})
 export class Invite {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
