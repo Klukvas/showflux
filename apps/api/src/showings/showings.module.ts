@@ -4,9 +4,10 @@ import { ShowingsController } from './showings.controller.js';
 import { ShowingsService } from './showings.service.js';
 import { Showing } from '../entities/showing.entity.js';
 import { Listing } from '../entities/listing.entity.js';
+import { ActivityModule } from '../activity/activity.module.js';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Showing, Listing])],
+  imports: [TypeOrmModule.forFeature([Showing, Listing]), ActivityModule],
   controllers: [ShowingsController],
   providers: [ShowingsService],
   exports: [ShowingsService],

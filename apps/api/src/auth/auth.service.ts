@@ -2,20 +2,29 @@ import {
   Injectable,
   ConflictException,
   UnauthorizedException,
+  BadRequestException,
+  Logger,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
-import { DataSource, Repository } from 'typeorm';
+import { DataSource, Repository, IsNull } from 'typeorm';
+import { randomBytes, createHash } from 'node:crypto';
 import bcrypt from 'bcrypt';
 import { User } from '../entities/user.entity.js';
 import { Workspace } from '../entities/workspace.entity.js';
+import { PasswordReset } from '../entities/password-reset.entity.js';
 import { Role } from '../common/enums/role.enum.js';
 import { Plan } from '../common/enums/plan.enum.js';
 import { RegisterDto } from './dto/register.dto.js';
 
 const BCRYPT_ROUNDS = 12;
 const DUMMY_HASH = '$2b$12$000000000000000000000uGlBcfGFG50mCEdvLqMgaHNJD4qjzSsO';
+const RESET_TOKEN_EXPIRY_HOURS = 1;
+
+function hashToken(raw: string): string {
+  return createHash('sha256').update(raw).digest('hex');
+}
 
 export interface JwtPayload {
   sub: string;
@@ -33,11 +42,15 @@ interface AuthResult {
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
+
   constructor(
     @InjectRepository(User)
     private readonly userRepo: Repository<User>,
     @InjectRepository(Workspace)
     private readonly workspaceRepo: Repository<Workspace>,
+    @InjectRepository(PasswordReset)
+    private readonly passwordResetRepo: Repository<PasswordReset>,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
     private readonly dataSource: DataSource,
@@ -122,6 +135,63 @@ export class AuthService {
       }
       throw new UnauthorizedException('Invalid refresh token');
     }
+  }
+
+  async requestPasswordReset(email: string): Promise<void> {
+    const user = await this.userRepo.findOne({ where: { email } });
+    if (!user || !user.isActive) {
+      return; // Always return silently to prevent email enumeration
+    }
+
+    const rawToken = randomBytes(32).toString('hex');
+    const token = hashToken(rawToken);
+    const expiresAt = new Date();
+    expiresAt.setHours(expiresAt.getHours() + RESET_TOKEN_EXPIRY_HOURS);
+
+    const reset = this.passwordResetRepo.create({
+      userId: user.id,
+      token,
+      expiresAt,
+    });
+    await this.passwordResetRepo.save(reset);
+
+    const isDev = this.configService.get('NODE_ENV') !== 'production';
+    if (isDev) {
+      this.logger.log(
+        `Password reset token for ${email}: ${rawToken}`,
+      );
+    }
+  }
+
+  async resetPassword(rawToken: string, newPassword: string): Promise<void> {
+    const token = hashToken(rawToken);
+
+    await this.dataSource.transaction(async (manager) => {
+      const reset = await manager.findOne(PasswordReset, {
+        where: { token, usedAt: IsNull() },
+        lock: { mode: 'pessimistic_write' },
+      });
+      if (!reset) {
+        throw new BadRequestException('Invalid or already used token');
+      }
+
+      if (new Date() > reset.expiresAt) {
+        throw new BadRequestException('Reset token has expired');
+      }
+
+      const passwordHash = await bcrypt.hash(newPassword, BCRYPT_ROUNDS);
+      await manager.update(User, reset.userId, { passwordHash });
+
+      // Mark ALL pending tokens for this user as used
+      await manager
+        .createQueryBuilder()
+        .update(PasswordReset)
+        .set({ usedAt: new Date() })
+        .where('user_id = :userId AND used_at IS NULL', {
+          userId: reset.userId,
+        })
+        .execute();
+    });
   }
 
   private buildAuthResult(user: User): AuthResult {

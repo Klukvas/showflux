@@ -9,10 +9,11 @@ import { JwtStrategy } from './strategies/jwt.strategy.js';
 import { LocalStrategy } from './strategies/local.strategy.js';
 import { User } from '../entities/user.entity.js';
 import { Workspace } from '../entities/workspace.entity.js';
+import { PasswordReset } from '../entities/password-reset.entity.js';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([User, Workspace]),
+    TypeOrmModule.forFeature([User, Workspace, PasswordReset]),
     PassportModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],

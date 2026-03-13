@@ -22,6 +22,7 @@ import { Role } from '../common/enums/role.enum.js';
 import { OffersService } from './offers.service.js';
 import { CreateOfferDto } from './dto/create-offer.dto.js';
 import { UpdateOfferDto } from './dto/update-offer.dto.js';
+import { OfferFilterDto } from './dto/offer-filter.dto.js';
 
 @Controller('offers')
 @UseGuards(JwtAuthGuard, WorkspaceGuard, RolesGuard)
@@ -31,18 +32,9 @@ export class OffersController {
   @Get()
   findAll(
     @WorkspaceId() workspaceId: string,
-    @Query('listingId') listingId?: string,
-    @Query('page') page?: string,
-    @Query('limit') limit?: string,
+    @Query() filters: OfferFilterDto,
   ) {
-    if (listingId) {
-      return this.offersService.findByListing(listingId, workspaceId);
-    }
-    return this.offersService.findAll(
-      workspaceId,
-      page ? parseInt(page, 10) : 1,
-      limit ? parseInt(limit, 10) : 50,
-    );
+    return this.offersService.findAll(workspaceId, filters);
   }
 
   @Get(':id')
@@ -67,8 +59,9 @@ export class OffersController {
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateOfferDto,
     @WorkspaceId() workspaceId: string,
+    @CurrentUser('id') userId: string,
   ) {
-    return this.offersService.update(id, dto, workspaceId);
+    return this.offersService.update(id, dto, workspaceId, userId);
   }
 
   @Delete(':id')

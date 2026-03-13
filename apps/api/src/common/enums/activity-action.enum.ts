@@ -1,0 +1,16 @@
+export enum ActivityAction {
+  LISTING_CREATED = 'listing_created',
+  LISTING_UPDATED = 'listing_updated',
+  LISTING_DELETED = 'listing_deleted',
+  SHOWING_SCHEDULED = 'showing_scheduled',
+  SHOWING_UPDATED = 'showing_updated',
+  SHOWING_COMPLETED = 'showing_completed',
+  OFFER_SUBMITTED = 'offer_submitted',
+  OFFER_ACCEPTED = 'offer_accepted',
+  OFFER_REJECTED = 'offer_rejected',
+  OFFER_UPDATED = 'offer_updated',
+  INVITE_SENT = 'invite_sent',
+  INVITE_ACCEPTED = 'invite_accepted',
+  MEMBER_DEACTIVATED = 'member_deactivated',
+  MEMBER_REACTIVATED = 'member_reactivated',
+}

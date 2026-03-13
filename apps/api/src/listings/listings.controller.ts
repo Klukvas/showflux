@@ -22,6 +22,7 @@ import { Role } from '../common/enums/role.enum.js';
 import { ListingsService } from './listings.service.js';
 import { CreateListingDto } from './dto/create-listing.dto.js';
 import { UpdateListingDto } from './dto/update-listing.dto.js';
+import { ListingFilterDto } from './dto/listing-filter.dto.js';
 
 @Controller('listings')
 @UseGuards(JwtAuthGuard, WorkspaceGuard, RolesGuard)
@@ -31,14 +32,9 @@ export class ListingsController {
   @Get()
   findAll(
     @WorkspaceId() workspaceId: string,
-    @Query('page') page?: string,
-    @Query('limit') limit?: string,
+    @Query() filters: ListingFilterDto,
   ) {
-    return this.listingsService.findAll(
-      workspaceId,
-      page ? parseInt(page, 10) : 1,
-      limit ? parseInt(limit, 10) : 50,
-    );
+    return this.listingsService.findAll(workspaceId, filters);
   }
 
   @Get(':id')
@@ -63,8 +59,9 @@ export class ListingsController {
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateListingDto,
     @WorkspaceId() workspaceId: string,
+    @CurrentUser('id') userId: string,
   ) {
-    return this.listingsService.update(id, dto, workspaceId);
+    return this.listingsService.update(id, dto, workspaceId, userId);
   }
 
   @Delete(':id')
@@ -73,7 +70,8 @@ export class ListingsController {
   remove(
     @Param('id', ParseUUIDPipe) id: string,
     @WorkspaceId() workspaceId: string,
+    @CurrentUser('id') userId: string,
   ) {
-    return this.listingsService.remove(id, workspaceId);
+    return this.listingsService.remove(id, workspaceId, userId);
   }
 }

@@ -5,6 +5,7 @@ import {
   Delete,
   Body,
   Param,
+  Query,
   UseGuards,
   ParseUUIDPipe,
   HttpCode,
@@ -22,6 +23,7 @@ import { Role } from '../common/enums/role.enum.js';
 import { InvitesService } from './invites.service.js';
 import { CreateInviteDto } from './dto/create-invite.dto.js';
 import { AcceptInviteDto } from './dto/accept-invite.dto.js';
+import { PaginationQueryDto } from '../common/dto/pagination-query.dto.js';
 
 const TOKEN_PATTERN = /^[a-f0-9]{64}$/;
 
@@ -32,8 +34,15 @@ export class InvitesController {
   @Get()
   @UseGuards(JwtAuthGuard, WorkspaceGuard, RolesGuard)
   @Roles(Role.BROKER)
-  findAll(@WorkspaceId() workspaceId: string) {
-    return this.invitesService.findAll(workspaceId);
+  findAll(
+    @WorkspaceId() workspaceId: string,
+    @Query() query: PaginationQueryDto,
+  ) {
+    return this.invitesService.findAll(
+      workspaceId,
+      query.page,
+      query.limit,
+    );
   }
 
   @Post()

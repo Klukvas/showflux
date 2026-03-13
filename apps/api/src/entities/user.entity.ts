@@ -7,6 +7,7 @@ import {
   ManyToOne,
   JoinColumn,
 } from 'typeorm';
+import { Exclude } from 'class-transformer';
 import { Role } from '../common/enums/role.enum.js';
 import { Workspace } from './workspace.entity.js';
 
@@ -21,6 +22,7 @@ export class User {
   @Column({ unique: true, length: 255 })
   email!: string;
 
+  @Exclude()
   @Column({ name: 'password_hash' })
   passwordHash!: string;
 

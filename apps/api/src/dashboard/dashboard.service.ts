@@ -1,0 +1,116 @@
+import { Injectable } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository, MoreThanOrEqual } from 'typeorm';
+import { Listing } from '../entities/listing.entity.js';
+import { Showing } from '../entities/showing.entity.js';
+import { Offer } from '../entities/offer.entity.js';
+import { User } from '../entities/user.entity.js';
+import { ListingStatus } from '../common/enums/listing-status.enum.js';
+import { ShowingStatus } from '../common/enums/showing-status.enum.js';
+import { OfferStatus } from '../common/enums/offer-status.enum.js';
+
+export interface DashboardSummary {
+  listings: { total: number; active: number; pending: number; sold: number };
+  showings: { upcoming: number; completed: number; today: number };
+  offers: { pending: number; accepted: number; total: number };
+  agents: { total: number; active: number };
+}
+
+@Injectable()
+export class DashboardService {
+  constructor(
+    @InjectRepository(Listing)
+    private readonly listingRepo: Repository<Listing>,
+    @InjectRepository(Showing)
+    private readonly showingRepo: Repository<Showing>,
+    @InjectRepository(Offer)
+    private readonly offerRepo: Repository<Offer>,
+    @InjectRepository(User)
+    private readonly userRepo: Repository<User>,
+  ) {}
+
+  async getSummary(workspaceId: string): Promise<DashboardSummary> {
+    const now = new Date();
+    const todayStart = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate(),
+    );
+    const tomorrowStart = new Date(todayStart);
+    tomorrowStart.setDate(tomorrowStart.getDate() + 1);
+
+    const [listings, showings, offers, agents] = await Promise.all([
+      this.getListingStats(workspaceId),
+      this.getShowingStats(workspaceId, now, todayStart, tomorrowStart),
+      this.getOfferStats(workspaceId),
+      this.getAgentStats(workspaceId),
+    ]);
+
+    return { listings, showings, offers, agents };
+  }
+
+  private async getListingStats(workspaceId: string) {
+    const [total, active, pending, sold] = await Promise.all([
+      this.listingRepo.count({ where: { workspaceId } }),
+      this.listingRepo.count({
+        where: { workspaceId, status: ListingStatus.ACTIVE },
+      }),
+      this.listingRepo.count({
+        where: { workspaceId, status: ListingStatus.PENDING },
+      }),
+      this.listingRepo.count({
+        where: { workspaceId, status: ListingStatus.SOLD },
+      }),
+    ]);
+    return { total, active, pending, sold };
+  }
+
+  private async getShowingStats(
+    workspaceId: string,
+    now: Date,
+    todayStart: Date,
+    tomorrowStart: Date,
+  ) {
+    const [upcoming, completed, todayCount] = await Promise.all([
+      this.showingRepo.count({
+        where: {
+          workspaceId,
+          status: ShowingStatus.SCHEDULED,
+          scheduledAt: MoreThanOrEqual(now),
+        },
+      }),
+      this.showingRepo.count({
+        where: { workspaceId, status: ShowingStatus.COMPLETED },
+      }),
+      this.showingRepo
+        .createQueryBuilder('s')
+        .where('s.workspace_id = :workspaceId', { workspaceId })
+        .andWhere('s.scheduled_at >= :start', { start: todayStart })
+        .andWhere('s.scheduled_at < :end', { end: tomorrowStart })
+        .getCount(),
+    ]);
+
+    return { upcoming, completed, today: todayCount };
+  }
+
+  private async getOfferStats(workspaceId: string) {
+    const [total, pending, accepted] = await Promise.all([
+      this.offerRepo.count({ where: { workspaceId } }),
+      this.offerRepo.count({
+        where: { workspaceId, status: OfferStatus.SUBMITTED },
+      }),
+      this.offerRepo.count({
+        where: { workspaceId, status: OfferStatus.ACCEPTED },
+      }),
+    ]);
+    return { pending, accepted, total };
+  }
+
+  private async getAgentStats(workspaceId: string) {
+    const [total, active] = await Promise.all([
+      this.userRepo.count({ where: { workspaceId } }),
+      this.userRepo.count({ where: { workspaceId, isActive: true } }),
+    ]);
+    return { total, active };
+  }
+}
