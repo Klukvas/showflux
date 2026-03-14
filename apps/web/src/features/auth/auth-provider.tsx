@@ -43,19 +43,16 @@ export function AuthProvider({
     init();
   }, []);
 
-  const login = useCallback(
-    async (email: string, password: string) => {
-      const res = await api.post<AuthResponse>(endpoints.auth.login, {
-        email,
-        password,
-      });
-      setAccessToken(res.accessToken);
-      setUser(res.user);
-      setSessionCookie(true);
-      router.push("/dashboard");
-    },
-    [router],
-  );
+  const login = useCallback(async (email: string, password: string) => {
+    const res = await api.post<AuthResponse>(endpoints.auth.login, {
+      email,
+      password,
+    });
+    setAccessToken(res.accessToken);
+    setUser(res.user);
+    setSessionCookie(true);
+    return res.user;
+  }, []);
 
   const register = useCallback(
     async (
@@ -73,9 +70,9 @@ export function AuthProvider({
       setAccessToken(res.accessToken);
       setUser(res.user);
       setSessionCookie(true);
-      router.push("/dashboard");
+      return res.user;
     },
-    [router],
+    [],
   );
 
   const logout = useCallback(async () => {
@@ -87,7 +84,7 @@ export function AuthProvider({
     setAccessToken(null);
     setUser(null);
     setSessionCookie(false);
-    router.push("/login");
+    router.push("/");
   }, [router]);
 
   const updateUser = useCallback((updated: User) => {

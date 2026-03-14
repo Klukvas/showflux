@@ -11,6 +11,11 @@ export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const hasSession = request.cookies.has(SESSION_COOKIE_NAME);
 
+  // Landing page is accessible to everyone
+  if (pathname === '/') {
+    return NextResponse.next();
+  }
+
   if (isPublicRoute(pathname)) {
     if (hasSession) {
       return NextResponse.redirect(new URL('/dashboard', request.url));
@@ -18,7 +23,7 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  if (!hasSession && pathname !== '/') {
+  if (!hasSession) {
     return NextResponse.redirect(new URL('/login', request.url));
   }
 

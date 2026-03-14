@@ -1,0 +1,173 @@
+name: CI Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  api-lint:
+    name: API Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      - name: Lint API
+        working-directory: apps/api
+        run: npx eslint "{src,test}/**/*.ts"
+
+  api-unit-tests:
+    name: API Unit Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      - name: Run unit tests with coverage
+        working-directory: apps/api
+        run: npx jest --coverage --ci
+
+      - name: Upload coverage artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: api-coverage
+          path: apps/api/coverage/
+          retention-days: 7
+
+  api-build:
+    name: API Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      - name: Build API
+        working-directory: apps/api
+        run: npx nest build
+
+  web-unit-tests:
+    name: Web Unit Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      - name: Run unit tests with coverage
+        working-directory: apps/web
+        run: npx jest --coverage --ci
+
+      - name: Upload coverage artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: web-coverage
+          path: apps/web/coverage/
+          retention-days: 7
+
+  web-build:
+    name: Web Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      - name: Build Web
+        working-directory: apps/web
+        run: npx next build
+
+  api-e2e-tests:
+    name: API E2E Tests
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: showflux
+          POSTGRES_PASSWORD: showflux_dev
+          POSTGRES_DB: showflux_test
+        ports:
+          - 5433:5432
+        options: >-
+          --health-cmd "pg_isready -U showflux"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6380:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      - name: Build API (needed for migrations)
+        working-directory: apps/api
+        run: npx nest build
+
+      - name: Run E2E tests
+        working-directory: apps/api
+        env:
+          DATABASE_HOST: localhost
+          DATABASE_PORT: 5433
+          DATABASE_USER: showflux
+          DATABASE_PASSWORD: showflux_dev
+          DATABASE_NAME: showflux_test
+          REDIS_HOST: localhost
+          REDIS_PORT: 6380
+          JWT_SECRET: test-jwt-secret-do-not-use-in-production
+          JWT_EXPIRATION: 15m
+          JWT_REFRESH_EXPIRATION: 30d
+          API_PORT: 3002
+          NODE_ENV: test
+          ALLOW_SCHEMA_SYNC: true
+        run: npx jest --config ./test/jest-e2e.json --ci
