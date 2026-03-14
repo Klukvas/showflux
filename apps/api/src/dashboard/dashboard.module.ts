@@ -11,5 +11,6 @@ import { User } from '../entities/user.entity.js';
   imports: [TypeOrmModule.forFeature([Listing, Showing, Offer, User])],
   controllers: [DashboardController],
   providers: [DashboardService],
+  exports: [DashboardService],
 })
 export class DashboardModule {}

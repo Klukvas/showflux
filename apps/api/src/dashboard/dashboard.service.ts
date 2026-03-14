@@ -1,6 +1,11 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, MoreThanOrEqual } from 'typeorm';
+import { RedisCacheService } from '../common/cache/redis-cache.service.js';
+import {
+  CACHE_KEY_PREFIX,
+  CACHE_TTL,
+} from '../common/cache/redis-cache.constants.js';
 import { Listing } from '../entities/listing.entity.js';
 import { Showing } from '../entities/showing.entity.js';
 import { Offer } from '../entities/offer.entity.js';
@@ -18,6 +23,8 @@ export interface DashboardSummary {
 
 @Injectable()
 export class DashboardService {
+  private readonly logger = new Logger(DashboardService.name);
+
   constructor(
     @InjectRepository(Listing)
     private readonly listingRepo: Repository<Listing>,
@@ -27,9 +34,16 @@ export class DashboardService {
     private readonly offerRepo: Repository<Offer>,
     @InjectRepository(User)
     private readonly userRepo: Repository<User>,
+    private readonly redisCacheService: RedisCacheService,
   ) {}
 
   async getSummary(workspaceId: string): Promise<DashboardSummary> {
+    const cacheKey = `${CACHE_KEY_PREFIX.DASHBOARD_SUMMARY}:${workspaceId}`;
+    const cached = await this.redisCacheService.get<DashboardSummary>(cacheKey);
+    if (cached) {
+      return cached;
+    }
+
     const now = new Date();
     const todayStart = new Date(
       now.getFullYear(),
@@ -46,7 +60,15 @@ export class DashboardService {
       this.getAgentStats(workspaceId),
     ]);
 
-    return { listings, showings, offers, agents };
+    const summary = { listings, showings, offers, agents };
+    await this.redisCacheService.set(cacheKey, summary, CACHE_TTL.DASHBOARD);
+    return summary;
+  }
+
+  async invalidateSummary(workspaceId: string): Promise<void> {
+    await this.redisCacheService
+      .del(`${CACHE_KEY_PREFIX.DASHBOARD_SUMMARY}:${workspaceId}`)
+      .catch(() => {});
   }
 
   private async getListingStats(workspaceId: string) {

@@ -15,6 +15,12 @@ import { ListingFilterDto } from './dto/listing-filter.dto.js';
 import { PaginatedResult } from '../common/interfaces/paginated.interface.js';
 import { ActivityService } from '../activity/activity.service.js';
 import { ActivityAction } from '../common/enums/activity-action.enum.js';
+import { DashboardService } from '../dashboard/dashboard.service.js';
+import { RedisCacheService } from '../common/cache/redis-cache.service.js';
+import {
+  CACHE_KEY_PREFIX,
+  CACHE_TTL,
+} from '../common/cache/redis-cache.constants.js';
 
 @Injectable()
 export class ListingsService {
@@ -22,6 +28,8 @@ export class ListingsService {
     @InjectRepository(Listing)
     private readonly listingRepo: Repository<Listing>,
     private readonly activityService: ActivityService,
+    private readonly dashboardService: DashboardService,
+    private readonly redisCacheService: RedisCacheService,
   ) {}
 
   async findAll(
@@ -55,6 +63,12 @@ export class ListingsService {
   }
 
   async findById(id: string, workspaceId: string): Promise<Listing> {
+    const cacheKey = `${CACHE_KEY_PREFIX.LISTING}:${id}`;
+    const cached = await this.redisCacheService.get<Listing>(cacheKey);
+    if (cached && cached.workspaceId === workspaceId) {
+      return cached;
+    }
+
     const listing = await this.listingRepo.findOne({
       where: { id, workspaceId },
       relations: ['listingAgent'],
@@ -62,6 +76,9 @@ export class ListingsService {
     if (!listing) {
       throw new NotFoundException('Listing not found');
     }
+    this.redisCacheService
+      .set(cacheKey, listing, CACHE_TTL.ENTITY)
+      .catch(() => {});
     return listing;
   }
 
@@ -88,6 +105,7 @@ export class ListingsService {
     } catch {
       // Activity logging is best-effort
     }
+    this.dashboardService.invalidateSummary(workspaceId).catch(() => {});
     return saved;
   }
 
@@ -114,6 +132,10 @@ export class ListingsService {
         // Activity logging is best-effort
       }
     }
+    this.redisCacheService
+      .del(`${CACHE_KEY_PREFIX.LISTING}:${id}`)
+      .catch(() => {});
+    this.dashboardService.invalidateSummary(workspaceId).catch(() => {});
     return saved;
   }
 
@@ -138,5 +160,9 @@ export class ListingsService {
         // Activity logging is best-effort
       }
     }
+    this.redisCacheService
+      .del(`${CACHE_KEY_PREFIX.LISTING}:${id}`)
+      .catch(() => {});
+    this.dashboardService.invalidateSummary(workspaceId).catch(() => {});
   }
 }

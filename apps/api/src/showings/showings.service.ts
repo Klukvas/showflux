@@ -23,6 +23,7 @@ import { ListingStatus } from '../common/enums/listing-status.enum.js';
 import { ShowingStatus } from '../common/enums/showing-status.enum.js';
 import { ActivityService } from '../activity/activity.service.js';
 import { ActivityAction } from '../common/enums/activity-action.enum.js';
+import { DashboardService } from '../dashboard/dashboard.service.js';
 
 @Injectable()
 export class ShowingsService {
@@ -33,6 +34,7 @@ export class ShowingsService {
     private readonly listingRepo: Repository<Listing>,
     private readonly dataSource: DataSource,
     private readonly activityService: ActivityService,
+    private readonly dashboardService: DashboardService,
   ) {}
 
   async findAll(
@@ -142,6 +144,7 @@ export class ShowingsService {
       // Activity logging is best-effort
     }
 
+    this.dashboardService.invalidateSummary(workspaceId).catch(() => {});
     return saved;
   }
 
@@ -178,11 +181,13 @@ export class ShowingsService {
         // Activity logging is best-effort
       }
     }
+    this.dashboardService.invalidateSummary(workspaceId).catch(() => {});
     return saved;
   }
 
   async remove(id: string, workspaceId: string): Promise<void> {
     const showing = await this.findById(id, workspaceId);
     await this.showingRepo.remove(showing);
+    this.dashboardService.invalidateSummary(workspaceId).catch(() => {});
   }
 }

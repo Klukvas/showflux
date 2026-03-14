@@ -15,6 +15,7 @@ import { InvitesModule } from './invites/invites.module.js';
 import { DashboardModule } from './dashboard/dashboard.module.js';
 import { ActivityModule } from './activity/activity.module.js';
 import { HealthModule } from './health/health.module.js';
+import { RedisCacheModule } from './common/cache/redis-cache.module.js';
 import { Workspace } from './entities/workspace.entity.js';
 import { User } from './entities/user.entity.js';
 import { Listing } from './entities/listing.entity.js';
@@ -56,6 +57,7 @@ import { Activity } from './entities/activity.entity.js';
           configService.get<string>('ALLOW_SCHEMA_SYNC') === 'true',
       }),
     }),
+    RedisCacheModule,
     AuthModule,
     WorkspaceModule,
     UsersModule,

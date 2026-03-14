@@ -25,6 +25,10 @@ import { CurrentUser } from '../common/decorators/current-user.decorator.js';
 const REFRESH_COOKIE = 'refresh_token';
 const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
 
+function isProduction(configService: ConfigService): boolean {
+  return configService.get('NODE_ENV') === 'production';
+}
+
 @Controller('auth')
 export class AuthController {
   constructor(
@@ -73,12 +77,14 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   async logout(
     @CurrentUser('id') userId: string,
+    @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
   ) {
-    await this.authService.logout(userId);
+    const refreshToken = req.cookies?.[REFRESH_COOKIE] as string | undefined;
+    await this.authService.logout(userId, refreshToken);
     res.clearCookie(REFRESH_COOKIE, {
       httpOnly: true,
-      secure: true,
+      secure: isProduction(this.configService),
       sameSite: 'strict',
       path: '/',
     });
@@ -104,7 +110,7 @@ export class AuthController {
   private setRefreshCookie(res: Response, token: string): void {
     res.cookie(REFRESH_COOKIE, token, {
       httpOnly: true,
-      secure: this.configService.get('NODE_ENV') === 'production',
+      secure: isProduction(this.configService),
       sameSite: 'strict',
       path: '/',
       maxAge: THIRTY_DAYS_MS,

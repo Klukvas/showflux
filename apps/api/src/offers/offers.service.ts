@@ -16,6 +16,7 @@ import { ListingStatus } from '../common/enums/listing-status.enum.js';
 import { OfferStatus } from '../common/enums/offer-status.enum.js';
 import { ActivityService } from '../activity/activity.service.js';
 import { ActivityAction } from '../common/enums/activity-action.enum.js';
+import { DashboardService } from '../dashboard/dashboard.service.js';
 
 @Injectable()
 export class OffersService {
@@ -26,6 +27,7 @@ export class OffersService {
     private readonly listingRepo: Repository<Listing>,
     private readonly dataSource: DataSource,
     private readonly activityService: ActivityService,
+    private readonly dashboardService: DashboardService,
   ) {}
 
   async findAll(
@@ -82,9 +84,7 @@ export class OffersService {
     const offer = this.offerRepo.create({
       ...dto,
       submittedAt: new Date(),
-      expirationDate: dto.expirationDate
-        ? new Date(dto.expirationDate)
-        : null,
+      expirationDate: dto.expirationDate ? new Date(dto.expirationDate) : null,
       workspaceId,
       agentId,
     });
@@ -103,6 +103,7 @@ export class OffersService {
       // Activity logging is best-effort
     }
 
+    this.dashboardService.invalidateSummary(workspaceId).catch(() => {});
     return saved;
   }
 
@@ -143,12 +144,14 @@ export class OffersService {
         // Activity logging is best-effort
       }
     }
+    this.dashboardService.invalidateSummary(workspaceId).catch(() => {});
     return saved;
   }
 
   async remove(id: string, workspaceId: string): Promise<void> {
     const offer = await this.findById(id, workspaceId);
     await this.offerRepo.remove(offer);
+    this.dashboardService.invalidateSummary(workspaceId).catch(() => {});
   }
 
   private async acceptOffer(
@@ -205,6 +208,7 @@ export class OffersService {
       }
     }
 
+    this.dashboardService.invalidateSummary(workspaceId).catch(() => {});
     return saved;
   }
 }

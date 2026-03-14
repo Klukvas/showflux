@@ -11,6 +11,12 @@ import { User } from '../entities/user.entity.js';
 import { UpdateProfileDto } from './dto/update-profile.dto.js';
 import { ChangePasswordDto } from './dto/change-password.dto.js';
 import { PaginatedResult } from '../common/interfaces/paginated.interface.js';
+import { RedisCacheService } from '../common/cache/redis-cache.service.js';
+import {
+  CACHE_KEY_PREFIX,
+  CACHE_TTL,
+} from '../common/cache/redis-cache.constants.js';
+import { DashboardService } from '../dashboard/dashboard.service.js';
 
 const BCRYPT_ROUNDS = 12;
 
@@ -19,14 +25,24 @@ export class UsersService {
   constructor(
     @InjectRepository(User)
     private readonly userRepo: Repository<User>,
+    private readonly redisCacheService: RedisCacheService,
+    private readonly dashboardService: DashboardService,
   ) {}
 
   async findById(id: string): Promise<Omit<User, 'passwordHash'>> {
+    const cacheKey = `${CACHE_KEY_PREFIX.USER}:${id}`;
+    const cached =
+      await this.redisCacheService.get<Omit<User, 'passwordHash'>>(cacheKey);
+    if (cached) {
+      return cached;
+    }
+
     const user = await this.userRepo.findOne({ where: { id } });
     if (!user) {
       throw new NotFoundException('User not found');
     }
     const { passwordHash: _, ...result } = user;
+    await this.redisCacheService.set(cacheKey, result, CACHE_TTL.ENTITY);
     return result;
   }
 
@@ -42,6 +58,9 @@ export class UsersService {
     const updated = this.userRepo.create({ ...user, ...dto });
     const saved = await this.userRepo.save(updated);
     const { passwordHash: _, ...result } = saved;
+    this.redisCacheService
+      .del(`${CACHE_KEY_PREFIX.USER}:${userId}`)
+      .catch(() => {});
     return result;
   }
 
@@ -62,6 +81,9 @@ export class UsersService {
     const passwordHash = await bcrypt.hash(dto.newPassword, BCRYPT_ROUNDS);
     await this.userRepo.update(userId, { passwordHash });
     await this.userRepo.increment({ id: userId }, 'tokenVersion', 1);
+    this.redisCacheService
+      .del(`${CACHE_KEY_PREFIX.USER}:${userId}`)
+      .catch(() => {});
   }
 
   async findByWorkspace(
@@ -97,6 +119,10 @@ export class UsersService {
     }
 
     await this.userRepo.update(id, { isActive: false });
+    this.redisCacheService
+      .del(`${CACHE_KEY_PREFIX.USER}:${id}`)
+      .catch(() => {});
+    this.dashboardService.invalidateSummary(workspaceId).catch(() => {});
     const { passwordHash: _, ...result } = { ...user, isActive: false };
     return result;
   }
@@ -113,6 +139,10 @@ export class UsersService {
     }
 
     await this.userRepo.update(id, { isActive: true });
+    this.redisCacheService
+      .del(`${CACHE_KEY_PREFIX.USER}:${id}`)
+      .catch(() => {});
+    this.dashboardService.invalidateSummary(workspaceId).catch(() => {});
     const { passwordHash: _, ...result } = { ...user, isActive: true };
     return result;
   }

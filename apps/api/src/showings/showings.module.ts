@@ -5,9 +5,14 @@ import { ShowingsService } from './showings.service.js';
 import { Showing } from '../entities/showing.entity.js';
 import { Listing } from '../entities/listing.entity.js';
 import { ActivityModule } from '../activity/activity.module.js';
+import { DashboardModule } from '../dashboard/dashboard.module.js';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Showing, Listing]), ActivityModule],
+  imports: [
+    TypeOrmModule.forFeature([Showing, Listing]),
+    ActivityModule,
+    DashboardModule,
+  ],
   controllers: [ShowingsController],
   providers: [ShowingsService],
   exports: [ShowingsService],

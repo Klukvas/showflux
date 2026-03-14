@@ -9,7 +9,7 @@ import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository, IsNull } from 'typeorm';
-import { randomBytes, createHash } from 'node:crypto';
+import { randomBytes, randomUUID, createHash } from 'node:crypto';
 import bcrypt from 'bcrypt';
 import { User } from '../entities/user.entity.js';
 import { Workspace } from '../entities/workspace.entity.js';
@@ -17,6 +17,8 @@ import { PasswordReset } from '../entities/password-reset.entity.js';
 import { Role } from '../common/enums/role.enum.js';
 import { Plan } from '../common/enums/plan.enum.js';
 import { RegisterDto } from './dto/register.dto.js';
+import { RedisCacheService } from '../common/cache/redis-cache.service.js';
+import { CACHE_KEY_PREFIX } from '../common/cache/redis-cache.constants.js';
 
 const BCRYPT_ROUNDS = 12;
 const DUMMY_HASH =
@@ -34,6 +36,10 @@ export interface JwtPayload {
   workspaceId: string;
   tokenVersion: number;
   type: 'access' | 'refresh';
+  jti: string;
+  /** Set by JWT library on verification */
+  exp?: number;
+  iat?: number;
 }
 
 interface AuthResult {
@@ -56,6 +62,7 @@ export class AuthService {
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
     private readonly dataSource: DataSource,
+    private readonly redisCacheService: RedisCacheService,
   ) {}
 
   async register(dto: RegisterDto): Promise<AuthResult> {
@@ -124,6 +131,16 @@ export class AuthService {
         throw new UnauthorizedException('Invalid token type');
       }
 
+      // Check if the refresh token has been blacklisted
+      if (payload.jti) {
+        const blacklisted = await this.redisCacheService.get(
+          `${CACHE_KEY_PREFIX.BLACKLIST}:${payload.jti}`,
+        );
+        if (blacklisted) {
+          throw new UnauthorizedException('Token has been revoked');
+        }
+      }
+
       const user = await this.userRepo.findOne({ where: { id: payload.sub } });
       if (!user || !user.isActive) {
         throw new UnauthorizedException('User not found or inactive');
@@ -143,7 +160,28 @@ export class AuthService {
     }
   }
 
-  async logout(userId: string): Promise<void> {
+  async logout(userId: string, refreshToken?: string): Promise<void> {
+    // Blacklist the refresh token JTI in Redis if provided
+    if (refreshToken) {
+      try {
+        const payload = this.jwtService.verify<JwtPayload>(refreshToken, {
+          secret: this.configService.getOrThrow<string>('JWT_SECRET'),
+        });
+        if (payload.jti && payload.exp) {
+          const remainingTtl = payload.exp - Math.floor(Date.now() / 1000);
+          if (remainingTtl > 0) {
+            await this.redisCacheService.set(
+              `${CACHE_KEY_PREFIX.BLACKLIST}:${payload.jti}`,
+              '1',
+              remainingTtl,
+            );
+          }
+        }
+      } catch {
+        // Token may be expired or invalid — still increment tokenVersion below
+      }
+    }
+
     await this.userRepo.increment({ id: userId }, 'tokenVersion', 1);
   }
 
@@ -200,6 +238,11 @@ export class AuthService {
           userId: reset.userId,
         })
         .execute();
+
+      // Invalidate user cache after password reset
+      await this.redisCacheService
+        .del(`${CACHE_KEY_PREFIX.USER}:${reset.userId}`)
+        .catch(() => {});
     });
   }
 
@@ -240,6 +283,7 @@ export class AuthService {
       workspaceId: user.workspaceId,
       tokenVersion: user.tokenVersion,
       type,
+      jti: randomUUID(),
     };
   }
 }
