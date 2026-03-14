@@ -3,7 +3,9 @@ import { DataSource } from 'typeorm';
 import { config } from 'dotenv';
 import { join } from 'node:path';
 
+// Try multiple .env locations: monorepo root (local dev) and api dir
 config({ path: join(__dirname, '..', '..', '..', '.env') });
+config({ path: join(__dirname, '..', '.env') });
 
 function requireEnv(name: string): string {
   const value = process.env[name];

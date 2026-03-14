@@ -20,14 +20,14 @@ export class Showing {
   id!: string;
 
   @Index('idx_showings_workspace_id')
-  @Column({ name: 'workspace_id' })
+  @Column({ name: 'workspace_id', type: 'uuid' })
   workspaceId!: string;
 
   @Index('idx_showings_listing_id')
-  @Column({ name: 'listing_id' })
+  @Column({ name: 'listing_id', type: 'uuid' })
   listingId!: string;
 
-  @Column({ name: 'agent_id' })
+  @Column({ name: 'agent_id', type: 'uuid' })
   agentId!: string;
 
   @Column({ name: 'scheduled_at', type: 'timestamptz' })

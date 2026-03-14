@@ -13,6 +13,7 @@
     "build:web": "npm run build --workspace=apps/web"
   },
   "dependencies": {
-    "@nestjs/throttler": "^6.5.0"
+    "class-validator": "^0.15.1",
+    "class-transformer": "^0.5.1"
   }
 }

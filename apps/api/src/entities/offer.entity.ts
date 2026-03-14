@@ -25,14 +25,14 @@ export class Offer {
   id!: string;
 
   @Index('idx_offers_workspace_id')
-  @Column({ name: 'workspace_id' })
+  @Column({ name: 'workspace_id', type: 'uuid' })
   workspaceId!: string;
 
   @Index('idx_offers_listing_id')
-  @Column({ name: 'listing_id' })
+  @Column({ name: 'listing_id', type: 'uuid' })
   listingId!: string;
 
-  @Column({ name: 'agent_id' })
+  @Column({ name: 'agent_id', type: 'uuid' })
   agentId!: string;
 
   @Column({ name: 'buyer_name', length: 255 })

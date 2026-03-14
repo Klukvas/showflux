@@ -23,10 +23,10 @@ export class Invite {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
 
-  @Column({ name: 'workspace_id' })
+  @Column({ name: 'workspace_id', type: 'uuid' })
   workspaceId!: string;
 
-  @Column({ name: 'invited_by' })
+  @Column({ name: 'invited_by', type: 'uuid' })
   invitedBy!: string;
 
   @Column({ length: 255 })

@@ -24,7 +24,7 @@ export class Listing {
   id!: string;
 
   @Index('idx_listings_workspace_id')
-  @Column({ name: 'workspace_id' })
+  @Column({ name: 'workspace_id', type: 'uuid' })
   workspaceId!: string;
 
   @Column({ length: 255 })
@@ -72,7 +72,7 @@ export class Listing {
   })
   status!: ListingStatus;
 
-  @Column({ name: 'listing_agent_id' })
+  @Column({ name: 'listing_agent_id', type: 'uuid' })
   listingAgentId!: string;
 
   @Column({ type: 'text', nullable: true })
