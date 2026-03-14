@@ -7,6 +7,6 @@ export class UpdateProfileDto {
   fullName?: string;
 
   @IsOptional()
-  @IsUrl()
+  @IsUrl({ protocols: ['https'], require_tld: true, require_protocol: true })
   avatarUrl?: string;
 }

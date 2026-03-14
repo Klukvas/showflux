@@ -39,7 +39,7 @@ export function AcceptInviteForm({ token }: AcceptInviteFormProps) {
         },
       );
       setAccessToken(res.accessToken);
-      document.cookie = `${SESSION_COOKIE_NAME}=1; path=/; max-age=${60 * 60 * 24 * 30}; SameSite=Lax; Secure`;
+      document.cookie = `${SESSION_COOKIE_NAME}=1; path=/; max-age=${60 * 60 * 24 * 30}; SameSite=Strict; Secure`;
       router.push("/dashboard");
     },
   });

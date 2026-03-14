@@ -1,4 +1,12 @@
-import { IsOptional, IsEnum, IsUUID, IsString, IsNumber, Min } from 'class-validator';
+import {
+  IsOptional,
+  IsEnum,
+  IsUUID,
+  IsString,
+  IsNumber,
+  Min,
+  MaxLength,
+} from 'class-validator';
 import { Type } from 'class-transformer';
 import { ListingStatus } from '../../common/enums/listing-status.enum.js';
 import { PaginationQueryDto } from '../../common/dto/pagination-query.dto.js';
@@ -14,6 +22,7 @@ export class ListingFilterDto extends PaginationQueryDto {
 
   @IsOptional()
   @IsString()
+  @MaxLength(100)
   city?: string;
 
   @IsOptional()

@@ -106,7 +106,19 @@ export class InvitesService {
   async accept(
     rawToken: string,
     dto: AcceptInviteDto,
-  ): Promise<Omit<User, 'passwordHash'>> {
+  ): Promise<
+    Pick<
+      User,
+      | 'id'
+      | 'email'
+      | 'fullName'
+      | 'role'
+      | 'workspaceId'
+      | 'isActive'
+      | 'createdAt'
+      | 'updatedAt'
+    >
+  > {
     const token = hashToken(rawToken);
 
     const result = await this.dataSource.transaction(async (manager) => {
@@ -185,7 +197,26 @@ export class InvitesService {
       // Activity logging is best-effort
     }
 
-    return result.user;
+    const {
+      id,
+      email,
+      fullName,
+      role,
+      workspaceId,
+      isActive,
+      createdAt,
+      updatedAt,
+    } = result.user;
+    return {
+      id,
+      email,
+      fullName,
+      role,
+      workspaceId,
+      isActive,
+      createdAt,
+      updatedAt,
+    };
   }
 
   async revoke(id: string, workspaceId: string): Promise<Invite> {

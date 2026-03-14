@@ -42,6 +42,10 @@ import { Activity } from './entities/activity.entity.js';
         username: configService.getOrThrow<string>('DATABASE_USER'),
         password: configService.getOrThrow<string>('DATABASE_PASSWORD'),
         database: configService.getOrThrow<string>('DATABASE_NAME'),
+        ssl:
+          configService.get<string>('DATABASE_SSL') === 'true'
+            ? { rejectUnauthorized: true }
+            : false,
         entities: [
           Workspace,
           User,

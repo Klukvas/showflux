@@ -4,7 +4,7 @@ services:
     container_name: showflux-postgres
     restart: unless-stopped
     ports:
-      - '5433:5432'
+      - '127.0.0.1:5433:5432'
     environment:
       POSTGRES_USER: ${DATABASE_USER:-showflux}
       POSTGRES_PASSWORD: ${DATABASE_PASSWORD:-showflux_dev}
@@ -22,7 +22,7 @@ services:
     container_name: showflux-redis
     restart: unless-stopped
     ports:
-      - '6380:6379'
+      - '127.0.0.1:6380:6379'
     volumes:
       - redis_data:/data
     healthcheck:
@@ -51,11 +51,14 @@ services:
       DATABASE_USER: ${DATABASE_USER:-showflux}
       DATABASE_PASSWORD: ${DATABASE_PASSWORD:-showflux_dev}
       DATABASE_NAME: ${DATABASE_NAME:-showflux}
+      DATABASE_SSL: ${DATABASE_SSL:-false}
       REDIS_HOST: redis
       REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
       JWT_SECRET: ${JWT_SECRET:?JWT_SECRET must be set}
       JWT_EXPIRATION: ${JWT_EXPIRATION:-15m}
       JWT_REFRESH_EXPIRATION: ${JWT_REFRESH_EXPIRATION:-30d}
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:3000}
       API_PORT: 3001
 
   web:

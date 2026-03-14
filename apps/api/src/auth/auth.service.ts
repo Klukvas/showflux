@@ -196,6 +196,14 @@ export class AuthService {
     const expiresAt = new Date();
     expiresAt.setHours(expiresAt.getHours() + RESET_TOKEN_EXPIRY_HOURS);
 
+    // Invalidate all existing pending tokens for this user
+    await this.passwordResetRepo
+      .createQueryBuilder()
+      .update()
+      .set({ usedAt: new Date() })
+      .where('user_id = :userId AND used_at IS NULL', { userId: user.id })
+      .execute();
+
     const reset = this.passwordResetRepo.create({
       userId: user.id,
       token,
@@ -203,10 +211,7 @@ export class AuthService {
     });
     await this.passwordResetRepo.save(reset);
 
-    const isDev = this.configService.get('NODE_ENV') !== 'production';
-    if (isDev) {
-      this.logger.log(`Password reset token for ${email}: ${rawToken}`);
-    }
+    this.logger.log(`Password reset requested for user ${user.id}`);
   }
 
   async resetPassword(rawToken: string, newPassword: string): Promise<void> {

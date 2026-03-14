@@ -15,11 +15,13 @@ import { CACHE_TTL } from './redis-cache.constants.js';
       useFactory: (configService: ConfigService) => {
         const host = configService.get<string>('REDIS_HOST', 'localhost');
         const port = configService.get<number>('REDIS_PORT', 6380);
+        const password = configService.get<string>('REDIS_PASSWORD', '');
+        const authPart = password ? `:${password}@` : '';
 
         return {
           stores: [
             new Keyv({
-              store: new KeyvRedis(`redis://${host}:${port}`),
+              store: new KeyvRedis(`redis://${authPart}${host}:${port}`),
               namespace: 'showflux',
             }),
           ],

@@ -11,9 +11,9 @@ import type { AuthResponse } from "@/types/auth";
 
 function setSessionCookie(exists: boolean): void {
   if (exists) {
-    document.cookie = `${SESSION_COOKIE_NAME}=1; path=/; max-age=${60 * 60 * 24 * 30}; SameSite=Lax; Secure`;
+    document.cookie = `${SESSION_COOKIE_NAME}=1; path=/; max-age=${60 * 60 * 24 * 30}; SameSite=Strict; Secure`;
   } else {
-    document.cookie = `${SESSION_COOKIE_NAME}=; path=/; max-age=0; Secure`;
+    document.cookie = `${SESSION_COOKIE_NAME}=; path=/; max-age=0; SameSite=Strict; Secure`;
   }
 }
 

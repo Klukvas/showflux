@@ -110,7 +110,7 @@ export class ShowingsService {
         .andWhere('s.status = :status', { status: ShowingStatus.SCHEDULED })
         .andWhere('s.scheduled_at < :endAt', { endAt })
         .andWhere(
-          "s.scheduled_at + (s.duration || ' minutes')::interval > :startAt",
+          "s.scheduled_at + (s.duration * interval '1 minute') > :startAt",
           { startAt: scheduledAt },
         )
         .getOne();
