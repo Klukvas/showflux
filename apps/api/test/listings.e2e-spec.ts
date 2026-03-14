@@ -1,6 +1,9 @@
 import * as path from 'path';
 import * as dotenv from 'dotenv';
-dotenv.config({ path: path.resolve(__dirname, '..', '.env.test'), override: true });
+dotenv.config({
+  path: path.resolve(__dirname, '..', '.env.test'),
+  override: true,
+});
 process.env.NODE_ENV = 'development';
 process.env.ALLOW_SCHEMA_SYNC = 'true';
 
@@ -105,7 +108,7 @@ describe('Listings (e2e)', () => {
     const listingId = createRes.body.id;
 
     const deleteRes = await authDelete(app, token, `/listings/${listingId}`);
-    expect(deleteRes.status).toBe(200);
+    expect(deleteRes.status).toBe(204);
 
     const getRes = await authGet(app, token, `/listings/${listingId}`);
     expect(getRes.status).toBe(404);
@@ -139,7 +142,9 @@ describe('Listings (e2e)', () => {
     expect(res.status).toBe(200);
     expect(Array.isArray(res.body.data)).toBe(true);
     expect(res.body.data.length).toBeLessThanOrEqual(2);
-    expect(res.body).toHaveProperty('meta');
+    expect(res.body).toHaveProperty('total');
+    expect(res.body).toHaveProperty('page');
+    expect(res.body).toHaveProperty('limit');
   });
 
   it('GET /listings/:id returns 404 for non-existent', async () => {
@@ -157,8 +162,9 @@ describe('Listings (e2e)', () => {
     });
     const listingId = createRes.body.id;
 
-    const res = await request(app.getHttpServer())
-      .delete(`/listings/${listingId}`);
+    const res = await request(app.getHttpServer()).delete(
+      `/listings/${listingId}`,
+    );
 
     expect(res.status).toBe(401);
   });

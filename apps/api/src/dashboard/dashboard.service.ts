@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, MoreThanOrEqual } from 'typeorm';
+import { Repository } from 'typeorm';
 import { RedisCacheService } from '../common/cache/redis-cache.service.js';
 import {
   CACHE_KEY_PREFIX,
@@ -16,9 +16,9 @@ import { OfferStatus } from '../common/enums/offer-status.enum.js';
 
 export interface DashboardSummary {
   listings: { total: number; active: number; pending: number; sold: number };
-  showings: { upcoming: number; completed: number; today: number };
-  offers: { pending: number; accepted: number; total: number };
-  agents: { total: number; active: number };
+  showings: { total: number; scheduled: number; completed: number };
+  offers: { total: number; submitted: number; accepted: number };
+  team: { total: number; active: number };
 }
 
 @Injectable()
@@ -44,23 +44,14 @@ export class DashboardService {
       return cached;
     }
 
-    const now = new Date();
-    const todayStart = new Date(
-      now.getFullYear(),
-      now.getMonth(),
-      now.getDate(),
-    );
-    const tomorrowStart = new Date(todayStart);
-    tomorrowStart.setDate(tomorrowStart.getDate() + 1);
-
-    const [listings, showings, offers, agents] = await Promise.all([
+    const [listings, showings, offers, team] = await Promise.all([
       this.getListingStats(workspaceId),
-      this.getShowingStats(workspaceId, now, todayStart, tomorrowStart),
+      this.getShowingStats(workspaceId),
       this.getOfferStats(workspaceId),
-      this.getAgentStats(workspaceId),
+      this.getTeamStats(workspaceId),
     ]);
 
-    const summary = { listings, showings, offers, agents };
+    const summary = { listings, showings, offers, team };
     await this.redisCacheService.set(cacheKey, summary, CACHE_TTL.DASHBOARD);
     return summary;
   }
@@ -87,36 +78,22 @@ export class DashboardService {
     return { total, active, pending, sold };
   }
 
-  private async getShowingStats(
-    workspaceId: string,
-    now: Date,
-    todayStart: Date,
-    tomorrowStart: Date,
-  ) {
-    const [upcoming, completed, todayCount] = await Promise.all([
+  private async getShowingStats(workspaceId: string) {
+    const [total, scheduled, completed] = await Promise.all([
+      this.showingRepo.count({ where: { workspaceId } }),
       this.showingRepo.count({
-        where: {
-          workspaceId,
-          status: ShowingStatus.SCHEDULED,
-          scheduledAt: MoreThanOrEqual(now),
-        },
+        where: { workspaceId, status: ShowingStatus.SCHEDULED },
       }),
       this.showingRepo.count({
         where: { workspaceId, status: ShowingStatus.COMPLETED },
       }),
-      this.showingRepo
-        .createQueryBuilder('s')
-        .where('s.workspace_id = :workspaceId', { workspaceId })
-        .andWhere('s.scheduled_at >= :start', { start: todayStart })
-        .andWhere('s.scheduled_at < :end', { end: tomorrowStart })
-        .getCount(),
     ]);
 
-    return { upcoming, completed, today: todayCount };
+    return { total, scheduled, completed };
   }
 
   private async getOfferStats(workspaceId: string) {
-    const [total, pending, accepted] = await Promise.all([
+    const [total, submitted, accepted] = await Promise.all([
       this.offerRepo.count({ where: { workspaceId } }),
       this.offerRepo.count({
         where: { workspaceId, status: OfferStatus.SUBMITTED },
@@ -125,10 +102,10 @@ export class DashboardService {
         where: { workspaceId, status: OfferStatus.ACCEPTED },
       }),
     ]);
-    return { pending, accepted, total };
+    return { total, submitted, accepted };
   }
 
-  private async getAgentStats(workspaceId: string) {
+  private async getTeamStats(workspaceId: string) {
     const [total, active] = await Promise.all([
       this.userRepo.count({ where: { workspaceId } }),
       this.userRepo.count({ where: { workspaceId, isActive: true } }),

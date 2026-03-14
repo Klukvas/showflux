@@ -1,6 +1,9 @@
 import * as path from 'path';
 import * as dotenv from 'dotenv';
-dotenv.config({ path: path.resolve(__dirname, '..', '.env.test'), override: true });
+dotenv.config({
+  path: path.resolve(__dirname, '..', '.env.test'),
+  override: true,
+});
 process.env.NODE_ENV = 'development';
 process.env.ALLOW_SCHEMA_SYNC = 'true';
 
@@ -43,14 +46,36 @@ describe('Dashboard (e2e)', () => {
     expect(res.body).toHaveProperty('listings');
     expect(res.body).toHaveProperty('showings');
     expect(res.body).toHaveProperty('offers');
-    expect(typeof res.body.listings).toBe('number');
-    expect(typeof res.body.showings).toBe('number');
-    expect(typeof res.body.offers).toBe('number');
+    expect(res.body).toHaveProperty('team');
+
+    expect(res.body.listings).toEqual(
+      expect.objectContaining({
+        total: expect.any(Number),
+        active: expect.any(Number),
+      }),
+    );
+    expect(res.body.showings).toEqual(
+      expect.objectContaining({
+        total: expect.any(Number),
+        scheduled: expect.any(Number),
+      }),
+    );
+    expect(res.body.offers).toEqual(
+      expect.objectContaining({
+        total: expect.any(Number),
+        submitted: expect.any(Number),
+      }),
+    );
+    expect(res.body.team).toEqual(
+      expect.objectContaining({
+        total: expect.any(Number),
+        active: expect.any(Number),
+      }),
+    );
   });
 
   it('GET /dashboard/summary requires authentication', async () => {
-    const res = await request(app.getHttpServer())
-      .get('/dashboard/summary');
+    const res = await request(app.getHttpServer()).get('/dashboard/summary');
 
     expect(res.status).toBe(401);
   });

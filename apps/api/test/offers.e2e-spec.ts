@@ -1,6 +1,9 @@
 import * as path from 'path';
 import * as dotenv from 'dotenv';
-dotenv.config({ path: path.resolve(__dirname, '..', '.env.test'), override: true });
+dotenv.config({
+  path: path.resolve(__dirname, '..', '.env.test'),
+  override: true,
+});
 process.env.NODE_ENV = 'development';
 process.env.ALLOW_SCHEMA_SYNC = 'true';
 
@@ -72,10 +75,15 @@ describe('Offers (e2e)', () => {
   });
 
   it('GET /offers/:id returns a specific offer', async () => {
-    const createRes = await authPost(app, token, '/offers', validOffer({
-      buyerName: 'Jane Smith',
-      offerAmount: 445000,
-    }));
+    const createRes = await authPost(
+      app,
+      token,
+      '/offers',
+      validOffer({
+        buyerName: 'Jane Smith',
+        offerAmount: 445000,
+      }),
+    );
     const offerId = createRes.body.id;
 
     const res = await authGet(app, token, `/offers/${offerId}`);
@@ -86,9 +94,14 @@ describe('Offers (e2e)', () => {
   });
 
   it('PATCH /offers/:id updates an offer', async () => {
-    const createRes = await authPost(app, token, '/offers', validOffer({
-      buyerName: 'Update Buyer',
-    }));
+    const createRes = await authPost(
+      app,
+      token,
+      '/offers',
+      validOffer({
+        buyerName: 'Update Buyer',
+      }),
+    );
     const offerId = createRes.body.id;
 
     const res = await authPatch(app, token, `/offers/${offerId}`, {
@@ -102,13 +115,18 @@ describe('Offers (e2e)', () => {
   });
 
   it('DELETE /offers/:id removes an offer', async () => {
-    const createRes = await authPost(app, token, '/offers', validOffer({
-      buyerName: 'Delete Buyer',
-    }));
+    const createRes = await authPost(
+      app,
+      token,
+      '/offers',
+      validOffer({
+        buyerName: 'Delete Buyer',
+      }),
+    );
     const offerId = createRes.body.id;
 
     const deleteRes = await authDelete(app, token, `/offers/${offerId}`);
-    expect(deleteRes.status).toBe(200);
+    expect(deleteRes.status).toBe(204);
 
     const getRes = await authGet(app, token, `/offers/${offerId}`);
     expect(getRes.status).toBe(404);
@@ -117,17 +135,27 @@ describe('Offers (e2e)', () => {
   it('POST /offers validates listingId exists', async () => {
     const fakeListingId = '00000000-0000-4000-a000-000000000000';
 
-    const res = await authPost(app, token, '/offers', validOffer({
-      listingId: fakeListingId,
-    }));
+    const res = await authPost(
+      app,
+      token,
+      '/offers',
+      validOffer({
+        listingId: fakeListingId,
+      }),
+    );
 
     expect(res.status).toBe(404);
   });
 
   it('PATCH /offers/:id accepts an offer', async () => {
-    const createRes = await authPost(app, token, '/offers', validOffer({
-      buyerName: 'Accept Buyer',
-    }));
+    const createRes = await authPost(
+      app,
+      token,
+      '/offers',
+      validOffer({
+        buyerName: 'Accept Buyer',
+      }),
+    );
     const offerId = createRes.body.id;
 
     const res = await authPatch(app, token, `/offers/${offerId}`, {
@@ -145,18 +173,28 @@ describe('Offers (e2e)', () => {
     });
     const listing2Id = listing2Res.body.id;
 
-    const offer1Res = await authPost(app, token, '/offers', validOffer({
-      listingId: listing2Id,
-      buyerName: 'First Accepted',
-    }));
+    const offer1Res = await authPost(
+      app,
+      token,
+      '/offers',
+      validOffer({
+        listingId: listing2Id,
+        buyerName: 'First Accepted',
+      }),
+    );
     await authPatch(app, token, `/offers/${offer1Res.body.id}`, {
       status: 'accepted',
     });
 
-    const offer2Res = await authPost(app, token, '/offers', validOffer({
-      listingId: listing2Id,
-      buyerName: 'Second Attempt',
-    }));
+    const offer2Res = await authPost(
+      app,
+      token,
+      '/offers',
+      validOffer({
+        listingId: listing2Id,
+        buyerName: 'Second Attempt',
+      }),
+    );
     const res = await authPatch(app, token, `/offers/${offer2Res.body.id}`, {
       status: 'accepted',
     });
@@ -179,6 +217,8 @@ describe('Offers (e2e)', () => {
     expect(res.status).toBe(200);
     expect(Array.isArray(res.body.data)).toBe(true);
     expect(res.body.data.length).toBeLessThanOrEqual(2);
-    expect(res.body).toHaveProperty('meta');
+    expect(res.body).toHaveProperty('total');
+    expect(res.body).toHaveProperty('page');
+    expect(res.body).toHaveProperty('limit');
   });
 });

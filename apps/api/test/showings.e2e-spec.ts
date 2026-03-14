@@ -1,6 +1,9 @@
 import * as path from 'path';
 import * as dotenv from 'dotenv';
-dotenv.config({ path: path.resolve(__dirname, '..', '.env.test'), override: true });
+dotenv.config({
+  path: path.resolve(__dirname, '..', '.env.test'),
+  override: true,
+});
 process.env.NODE_ENV = 'development';
 process.env.ALLOW_SCHEMA_SYNC = 'true';
 
@@ -21,7 +24,8 @@ describe('Showings (e2e)', () => {
   let listingId: string;
 
   const tomorrow = () => new Date(Date.now() + 86_400_000).toISOString();
-  const dayAfterTomorrow = () => new Date(Date.now() + 2 * 86_400_000).toISOString();
+  const dayAfterTomorrow = () =>
+    new Date(Date.now() + 2 * 86_400_000).toISOString();
 
   const validListing = {
     address: '100 Showing Ln',
@@ -110,7 +114,7 @@ describe('Showings (e2e)', () => {
     const showingId = createRes.body.id;
 
     const deleteRes = await authDelete(app, token, `/showings/${showingId}`);
-    expect(deleteRes.status).toBe(200);
+    expect(deleteRes.status).toBe(204);
 
     const getRes = await authGet(app, token, `/showings/${showingId}`);
     expect(getRes.status).toBe(404);
@@ -160,7 +164,9 @@ describe('Showings (e2e)', () => {
     expect(res.status).toBe(200);
     expect(Array.isArray(res.body.data)).toBe(true);
     expect(res.body.data.length).toBeLessThanOrEqual(2);
-    expect(res.body).toHaveProperty('meta');
+    expect(res.body).toHaveProperty('total');
+    expect(res.body).toHaveProperty('page');
+    expect(res.body).toHaveProperty('limit');
   });
 
   it('GET /showings/:id returns 404 for non-existent', async () => {

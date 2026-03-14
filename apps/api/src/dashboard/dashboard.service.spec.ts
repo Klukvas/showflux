@@ -29,12 +29,6 @@ describe('DashboardService', () => {
     userRepo = createMockRepository();
     cacheService = createMockRedisCacheService();
 
-    showingRepo.createQueryBuilder.mockReturnValue({
-      where: jest.fn().mockReturnThis(),
-      andWhere: jest.fn().mockReturnThis(),
-      getCount: jest.fn().mockResolvedValue(1),
-    });
-
     const module = await Test.createTestingModule({
       providers: [
         DashboardService,
@@ -54,9 +48,9 @@ describe('DashboardService', () => {
   it('should return cached summary when cache hit', async () => {
     const cachedSummary = {
       listings: { total: 5, active: 5, pending: 0, sold: 0 },
-      showings: { upcoming: 2, completed: 0, today: 2 },
-      offers: { pending: 3, accepted: 0, total: 3 },
-      agents: { total: 4, active: 4 },
+      showings: { total: 2, scheduled: 2, completed: 0 },
+      offers: { total: 3, submitted: 3, accepted: 0 },
+      team: { total: 4, active: 4 },
     };
     cacheService.get.mockResolvedValue(cachedSummary);
 
@@ -80,7 +74,7 @@ describe('DashboardService', () => {
     expect(result.listings).toBeDefined();
     expect(result.showings).toBeDefined();
     expect(result.offers).toBeDefined();
-    expect(result.agents).toBeDefined();
+    expect(result.team).toBeDefined();
     expect(listingRepo.count).toHaveBeenCalled();
     expect(offerRepo.count).toHaveBeenCalled();
     expect(userRepo.count).toHaveBeenCalled();
@@ -114,7 +108,7 @@ describe('DashboardService', () => {
     await expect(service.invalidateSummary(workspaceId)).resolves.not.toThrow();
   });
 
-  it('should compute dates correctly for today showings query', async () => {
+  it('should return showing stats with total, scheduled, completed', async () => {
     cacheService.get.mockResolvedValue(null);
     listingRepo.count.mockResolvedValue(0);
     showingRepo.count.mockResolvedValue(0);
@@ -124,8 +118,9 @@ describe('DashboardService', () => {
     const result = await service.getSummary(workspaceId);
 
     expect(result.showings).toBeDefined();
-    expect(typeof result.showings.today).toBe('number');
-    expect(showingRepo.createQueryBuilder).toHaveBeenCalledWith('s');
+    expect(typeof result.showings.total).toBe('number');
+    expect(typeof result.showings.scheduled).toBe('number');
+    expect(typeof result.showings.completed).toBe('number');
   });
 
   it('should return correct counts in summary', async () => {
@@ -136,16 +131,12 @@ describe('DashboardService', () => {
       .mockResolvedValueOnce(5) // pending
       .mockResolvedValueOnce(3); // sold
     showingRepo.count
-      .mockResolvedValueOnce(6) // upcoming
+      .mockResolvedValueOnce(15) // total
+      .mockResolvedValueOnce(6) // scheduled
       .mockResolvedValueOnce(2); // completed
-    showingRepo.createQueryBuilder.mockReturnValue({
-      where: jest.fn().mockReturnThis(),
-      andWhere: jest.fn().mockReturnThis(),
-      getCount: jest.fn().mockResolvedValue(4),
-    });
     offerRepo.count
       .mockResolvedValueOnce(10) // total
-      .mockResolvedValueOnce(5) // pending
+      .mockResolvedValueOnce(5) // submitted
       .mockResolvedValueOnce(3); // accepted
     userRepo.count
       .mockResolvedValueOnce(8) // total
@@ -157,13 +148,13 @@ describe('DashboardService', () => {
     expect(result.listings.active).toBe(12);
     expect(result.listings.pending).toBe(5);
     expect(result.listings.sold).toBe(3);
-    expect(result.showings.upcoming).toBe(6);
+    expect(result.showings.total).toBe(15);
+    expect(result.showings.scheduled).toBe(6);
     expect(result.showings.completed).toBe(2);
-    expect(result.showings.today).toBe(4);
     expect(result.offers.total).toBe(10);
-    expect(result.offers.pending).toBe(5);
+    expect(result.offers.submitted).toBe(5);
     expect(result.offers.accepted).toBe(3);
-    expect(result.agents.total).toBe(8);
-    expect(result.agents.active).toBe(7);
+    expect(result.team.total).toBe(8);
+    expect(result.team.active).toBe(7);
   });
 });

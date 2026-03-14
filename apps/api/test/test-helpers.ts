@@ -53,7 +53,11 @@ export async function registerUser(
     .post('/auth/register')
     .send(body)
     .expect(201);
-  return { ...res.body, cookies: res.headers['set-cookie'] };
+  return {
+    ...res.body,
+    token: res.body.accessToken,
+    cookies: res.headers['set-cookie'],
+  };
 }
 
 export async function loginUser(
@@ -68,11 +72,7 @@ export async function loginUser(
   return { ...res.body, cookies: res.headers['set-cookie'] };
 }
 
-export function authGet(
-  app: INestApplication,
-  url: string,
-  token: string,
-) {
+export function authGet(app: INestApplication, token: string, url: string) {
   return request(app.getHttpServer())
     .get(url)
     .set('Authorization', `Bearer ${token}`);
@@ -80,8 +80,8 @@ export function authGet(
 
 export function authPost(
   app: INestApplication,
-  url: string,
   token: string,
+  url: string,
   body?: Record<string, unknown>,
 ) {
   const req = request(app.getHttpServer())
@@ -93,8 +93,8 @@ export function authPost(
 
 export function authPatch(
   app: INestApplication,
-  url: string,
   token: string,
+  url: string,
   body?: Record<string, unknown>,
 ) {
   const req = request(app.getHttpServer())
@@ -104,11 +104,7 @@ export function authPatch(
   return req;
 }
 
-export function authDelete(
-  app: INestApplication,
-  url: string,
-  token: string,
-) {
+export function authDelete(app: INestApplication, token: string, url: string) {
   return request(app.getHttpServer())
     .delete(url)
     .set('Authorization', `Bearer ${token}`);

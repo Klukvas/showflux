@@ -1,6 +1,9 @@
 import * as path from 'path';
 import * as dotenv from 'dotenv';
-dotenv.config({ path: path.resolve(__dirname, '..', '.env.test'), override: true });
+dotenv.config({
+  path: path.resolve(__dirname, '..', '.env.test'),
+  override: true,
+});
 process.env.NODE_ENV = 'development';
 process.env.ALLOW_SCHEMA_SYNC = 'true';
 
@@ -31,14 +34,14 @@ describe('Invites (e2e)', () => {
     await app.close();
   });
 
-  it('POST /invites creates an invite and returns rawToken', async () => {
+  it('POST /invites creates an invite and returns token', async () => {
     const res = await authPost(app, token, '/invites', {
       email: 'agent1@example.com',
     });
 
     expect(res.status).toBe(201);
     expect(res.body).toHaveProperty('id');
-    expect(res.body).toHaveProperty('rawToken');
+    expect(res.body).toHaveProperty('token');
     expect(res.body.email).toBe('agent1@example.com');
     expect(res.body.status).toBe('pending');
   });
@@ -67,20 +70,22 @@ describe('Invites (e2e)', () => {
     const inviteRes = await authPost(app, token, '/invites', {
       email: 'newagent@example.com',
     });
-    const rawToken = inviteRes.body.rawToken;
+    const inviteToken = inviteRes.body.token;
 
     const res = await request(app.getHttpServer())
-      .post(`/invites/${rawToken}/accept`)
+      .post(`/invites/${inviteToken}/accept`)
       .send({
         password: 'AgentPass1',
         fullName: 'New Agent',
       });
 
     expect(res.status).toBe(201);
-    expect(res.body).toHaveProperty('token');
+    expect(res.body).toHaveProperty('id');
+    expect(res.body).toHaveProperty('email');
+    expect(res.body.email).toBe('newagent@example.com');
   });
 
-  it('POST /invites/:token/accept rejects invalid token', async () => {
+  it('POST /invites/:token/accept rejects invalid token format', async () => {
     const res = await request(app.getHttpServer())
       .post('/invites/invalid-token-value/accept')
       .send({
@@ -88,24 +93,37 @@ describe('Invites (e2e)', () => {
         fullName: 'Bad Token Agent',
       });
 
-    expect(res.status).toBe(404);
+    expect(res.status).toBe(400);
+  });
+
+  it('POST /invites/:token/accept returns 400 for non-existent token', async () => {
+    const fakeToken = 'a'.repeat(64);
+
+    const res = await request(app.getHttpServer())
+      .post(`/invites/${fakeToken}/accept`)
+      .send({
+        password: 'AgentPass1',
+        fullName: 'No Such Token',
+      });
+
+    expect(res.status).toBe(400);
   });
 
   it('POST /invites/:token/accept rejects already-used invite', async () => {
     const inviteRes = await authPost(app, token, '/invites', {
       email: 'usedonce@example.com',
     });
-    const rawToken = inviteRes.body.rawToken;
+    const inviteToken = inviteRes.body.token;
 
     await request(app.getHttpServer())
-      .post(`/invites/${rawToken}/accept`)
+      .post(`/invites/${inviteToken}/accept`)
       .send({
         password: 'AgentPass1',
         fullName: 'First Accept',
       });
 
     const res = await request(app.getHttpServer())
-      .post(`/invites/${rawToken}/accept`)
+      .post(`/invites/${inviteToken}/accept`)
       .send({
         password: 'AgentPass1',
         fullName: 'Second Accept',
@@ -121,7 +139,7 @@ describe('Invites (e2e)', () => {
     const inviteId = inviteRes.body.id;
 
     const deleteRes = await authDelete(app, token, `/invites/${inviteId}`);
-    expect(deleteRes.status).toBe(200);
+    expect(deleteRes.status).toBe(204);
 
     const listRes = await authGet(app, token, '/invites');
     const found = listRes.body.data.find(
