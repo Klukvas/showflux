@@ -171,4 +171,13 @@ jobs:
           API_PORT: 3002
           NODE_ENV: test
           ALLOW_SCHEMA_SYNC: true
+          RESEND_API_KEY: re_test_key
+          RESEND_FROM_EMAIL: noreply@showflux.com
+          FRONTEND_URL: http://localhost:3000
+          PADDLE_API_KEY: test_paddle_api_key
+          PADDLE_WEBHOOK_SECRET: test_paddle_webhook_secret
+          PADDLE_ENVIRONMENT: sandbox
+          PADDLE_PRICE_SOLO: pri_test_solo
+          PADDLE_PRICE_TEAM: pri_test_team
+          PADDLE_PRICE_AGENCY: pri_test_agency
         run: npx jest --config ./test/jest-e2e.json --ci

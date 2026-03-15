@@ -18,6 +18,7 @@ const config: Config = {
     "src/features/dashboard/**/*.tsx",
     "src/features/listings/**/*.tsx",
     "src/features/team/**/*.tsx",
+    "src/features/subscription/**/*.{ts,tsx}",
     "!src/features/auth/auth-context.tsx",
     "!src/features/auth/auth-provider.tsx",
     "!src/features/auth/components/accept-invite-form.tsx",
