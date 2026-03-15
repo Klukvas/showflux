@@ -1,6 +1,7 @@
 "use client";
 
 import { Suspense, useState, useEffect, useCallback } from "react";
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/features/auth/hooks/use-auth";
 import { AuthModal } from "@/features/auth/components/auth-modal";
@@ -111,6 +112,36 @@ const steps = [
   },
 ] as const;
 
+const stats = [
+  { value: "500+", label: "Active Brokerages" },
+  { value: "50k+", label: "Listings Managed" },
+  { value: "98%", label: "Customer Satisfaction" },
+] as const;
+
+const testimonials = [
+  {
+    quote:
+      "ShowFlux cut our deal closing time by 40%. The showing scheduler alone saves us hours every week.",
+    name: "Sarah Chen",
+    role: "Managing Broker",
+    company: "Pacific Realty Group",
+  },
+  {
+    quote:
+      "Finally, a tool that both brokers and agents actually want to use. Onboarding our team took less than a day.",
+    name: "Marcus Williams",
+    role: "Team Lead",
+    company: "Cornerstone Properties",
+  },
+  {
+    quote:
+      "The offer management pipeline gives us a clear view of every deal. We never miss a deadline anymore.",
+    name: "Rachel Torres",
+    role: "Senior Broker",
+    company: "Summit Real Estate",
+  },
+] as const;
+
 function HomeContent() {
   const { user, isLoading } = useAuth();
   const router = useRouter();
@@ -157,15 +188,33 @@ function HomeContent() {
       <nav className="sticky top-0 z-40 border-b border-gray-100 bg-white/80 backdrop-blur-sm">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
           <span className="text-xl font-bold text-gray-900">ShowFlux</span>
-          {user ? (
-            <Button size="sm" onClick={() => router.push("/dashboard")}>
-              Go to Dashboard
-            </Button>
-          ) : (
-            <Button variant="ghost" size="sm" onClick={() => openAuth("login")}>
-              Sign In
-            </Button>
-          )}
+          <div className="flex items-center gap-4">
+            <Link
+              href="/blog"
+              className="text-sm font-medium text-gray-600 hover:text-gray-900"
+            >
+              Blog
+            </Link>
+            <Link
+              href="/features"
+              className="text-sm font-medium text-gray-600 hover:text-gray-900"
+            >
+              Features
+            </Link>
+            {user ? (
+              <Button size="sm" onClick={() => router.push("/dashboard")}>
+                Go to Dashboard
+              </Button>
+            ) : (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => openAuth("login")}
+              >
+                Sign In
+              </Button>
+            )}
+          </div>
         </div>
       </nav>
 
@@ -266,6 +315,47 @@ function HomeContent() {
         </div>
       </section>
 
+      {/* Stats */}
+      <section className="border-y border-gray-100 bg-white px-6 py-16">
+        <div className="mx-auto grid max-w-4xl gap-8 text-center sm:grid-cols-3">
+          {stats.map((stat) => (
+            <div key={stat.label}>
+              <p className="text-4xl font-bold text-blue-600">{stat.value}</p>
+              <p className="mt-2 text-sm text-gray-600">{stat.label}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* Testimonials */}
+      <section className="bg-gray-50 px-6 py-20">
+        <div className="mx-auto max-w-6xl">
+          <h2 className="text-center text-3xl font-bold tracking-tight text-gray-900">
+            Trusted by top brokerages
+          </h2>
+          <div className="mt-12 grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
+            {testimonials.map((testimonial) => (
+              <div
+                key={testimonial.name}
+                className="rounded-xl bg-white p-6 shadow-sm"
+              >
+                <p className="text-sm leading-6 text-gray-600">
+                  &ldquo;{testimonial.quote}&rdquo;
+                </p>
+                <div className="mt-4 border-t border-gray-100 pt-4">
+                  <p className="text-sm font-semibold text-gray-900">
+                    {testimonial.name}
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    {testimonial.role}, {testimonial.company}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* CTA */}
       {!user && (
         <section className="bg-blue-600 px-6 py-20 text-center">
@@ -292,11 +382,16 @@ function HomeContent() {
       {/* Footer */}
       <footer className="border-t border-gray-100 px-6 py-8">
         <div className="mx-auto flex max-w-6xl items-center justify-between text-sm text-gray-500">
-          <span>&copy; 2026 ShowFlux. All rights reserved.</span>
+          <span>
+            &copy; {new Date().getFullYear()} ShowFlux. All rights reserved.
+          </span>
           <div className="flex gap-6">
-            <a href="#features" className="hover:text-gray-700">
+            <Link href="/features" className="hover:text-gray-700">
               Features
-            </a>
+            </Link>
+            <Link href="/blog" className="hover:text-gray-700">
+              Blog
+            </Link>
           </div>
         </div>
       </footer>

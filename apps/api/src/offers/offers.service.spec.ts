@@ -1,5 +1,9 @@
 import { Test } from '@nestjs/testing';
-import { NotFoundException, ConflictException } from '@nestjs/common';
+import {
+  NotFoundException,
+  ConflictException,
+  ForbiddenException,
+} from '@nestjs/common';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
 import { OffersService } from './offers.service';
@@ -15,6 +19,7 @@ import {
 } from '../test-utils/mocks';
 import { OfferStatus } from '../common/enums/offer-status.enum';
 import { ListingStatus } from '../common/enums/listing-status.enum';
+import { Role } from '../common/enums/role.enum';
 
 describe('OffersService', () => {
   let service: OffersService;
@@ -276,7 +281,13 @@ describe('OffersService', () => {
     offerRepo.findOne.mockResolvedValue(existing);
     offerRepo.save.mockImplementation((o) => Promise.resolve(o));
 
-    await service.update('o1', { notes: 'counter' } as any, 'ws1');
+    await service.update(
+      'o1',
+      { notes: 'counter' } as any,
+      'ws1',
+      'user1',
+      Role.BROKER,
+    );
 
     expect(offerRepo.save).toHaveBeenCalled();
   });
@@ -295,6 +306,7 @@ describe('OffersService', () => {
       { status: OfferStatus.REJECTED } as any,
       'ws1',
       'user1',
+      Role.BROKER,
     );
 
     expect(activityService.log).toHaveBeenCalled();
@@ -314,6 +326,7 @@ describe('OffersService', () => {
       { status: OfferStatus.ACCEPTED } as any,
       'ws1',
       'user1',
+      Role.BROKER,
     );
 
     expect(dataSource.transaction).toHaveBeenCalled();
@@ -333,6 +346,7 @@ describe('OffersService', () => {
       { status: OfferStatus.COUNTERED } as any,
       'ws1',
       'user1',
+      Role.BROKER,
     );
 
     expect(activityService.log).toHaveBeenCalled();
@@ -348,11 +362,71 @@ describe('OffersService', () => {
     offerRepo.save.mockImplementation((o) => Promise.resolve(o));
 
     const expirationDate = '2026-12-31T23:59:59.000Z';
-    await service.update('o1', { expirationDate } as any, 'ws1');
+    await service.update(
+      'o1',
+      { expirationDate } as any,
+      'ws1',
+      'user1',
+      Role.BROKER,
+    );
 
     const savedArg = offerRepo.save.mock.calls[0][0];
     expect(savedArg.expirationDate).toBeInstanceOf(Date);
     expect(savedArg.expirationDate.toISOString()).toBe(expirationDate);
+  });
+
+  it("throws ForbiddenException when agent edits another agent's offer", async () => {
+    const existing = buildOffer({
+      id: 'o1',
+      workspaceId: 'ws1',
+      agentId: 'other-agent',
+      status: OfferStatus.PENDING,
+    });
+    offerRepo.findOne.mockResolvedValue(existing);
+
+    await expect(
+      service.update(
+        'o1',
+        { notes: 'edited' } as any,
+        'ws1',
+        'agent1',
+        Role.AGENT,
+      ),
+    ).rejects.toThrow(ForbiddenException);
+  });
+
+  it('allows agent to edit own offer', async () => {
+    const existing = buildOffer({
+      id: 'o1',
+      workspaceId: 'ws1',
+      agentId: 'agent1',
+      status: OfferStatus.PENDING,
+    });
+    offerRepo.findOne.mockResolvedValue(existing);
+    offerRepo.save.mockImplementation((o) => Promise.resolve(o));
+
+    const result = await service.update(
+      'o1',
+      { notes: 'my edit' } as any,
+      'ws1',
+      'agent1',
+      Role.AGENT,
+    );
+
+    expect(result).toBeDefined();
+    expect(offerRepo.save).toHaveBeenCalled();
+  });
+
+  it('throws ForbiddenException when agent tries to accept an offer', async () => {
+    await expect(
+      service.update(
+        'o1',
+        { status: OfferStatus.ACCEPTED } as any,
+        'ws1',
+        'agent1',
+        Role.AGENT,
+      ),
+    ).rejects.toThrow(ForbiddenException);
   });
 
   // ── acceptOffer (via update) ──────────────────────────────────────────
@@ -371,6 +445,7 @@ describe('OffersService', () => {
       { status: OfferStatus.ACCEPTED } as any,
       'ws1',
       'user1',
+      Role.BROKER,
     );
 
     expect(dataSource.transaction).toHaveBeenCalled();
@@ -395,6 +470,7 @@ describe('OffersService', () => {
         { status: OfferStatus.ACCEPTED } as any,
         'ws1',
         'user1',
+        Role.BROKER,
       ),
     ).rejects.toThrow(NotFoundException);
   });
@@ -431,6 +507,7 @@ describe('OffersService', () => {
       { status: OfferStatus.ACCEPTED, expirationDate } as any,
       'ws1',
       'user1',
+      Role.BROKER,
     );
 
     expect(result.expirationDate).toBeInstanceOf(Date);
@@ -475,11 +552,12 @@ describe('OffersService', () => {
         { status: OfferStatus.ACCEPTED } as any,
         'ws1',
         'user1',
+        Role.BROKER,
       ),
     ).rejects.toThrow(ConflictException);
   });
 
-  it('acceptOffer without userId does not log activity', async () => {
+  it('acceptOffer logs activity when userId is provided', async () => {
     dataSource.transaction.mockImplementation(async (cb) => {
       const manager = {
         findOne: jest
@@ -504,9 +582,15 @@ describe('OffersService', () => {
       return cb(manager);
     });
 
-    await service.update('o1', { status: OfferStatus.ACCEPTED } as any, 'ws1');
+    await service.update(
+      'o1',
+      { status: OfferStatus.ACCEPTED } as any,
+      'ws1',
+      'user1',
+      Role.BROKER,
+    );
 
-    expect(activityService.log).not.toHaveBeenCalled();
+    expect(activityService.log).toHaveBeenCalled();
   });
 
   // ── remove ────────────────────────────────────────────────────────────

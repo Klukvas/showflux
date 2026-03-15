@@ -1,33 +1,24 @@
-'use client';
+"use client";
 
-import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { useAuth } from '@/features/auth/hooks/use-auth';
-import { PageHeader } from '@/components/ui/page-header';
-import { Card, CardHeader, CardContent } from '@/components/ui/card';
-import { UserTable } from '@/features/team/components/user-table';
-import { InviteForm } from '@/features/team/components/invite-form';
-import { InviteTable } from '@/features/team/components/invite-table';
-import { useUsers } from '@/features/team/hooks/use-users';
-import { useInvites } from '@/features/team/hooks/use-invites';
+import { RoleGuard } from "@/components/auth/role-guard";
+import { PageHeader } from "@/components/ui/page-header";
+import { Card, CardHeader, CardContent } from "@/components/ui/card";
+import { UserTable } from "@/features/team/components/user-table";
+import { InviteForm } from "@/features/team/components/invite-form";
+import { InviteTable } from "@/features/team/components/invite-table";
+import { useUsers } from "@/features/team/hooks/use-users";
+import { useInvites } from "@/features/team/hooks/use-invites";
 
-export default function TeamPage() {
-  const { user } = useAuth();
-  const router = useRouter();
+function TeamPageContent() {
   const users = useUsers();
   const invites = useInvites();
 
-  useEffect(() => {
-    if (user && user.role !== 'broker') {
-      router.replace('/dashboard');
-    }
-  }, [user, router]);
-
-  if (user?.role !== 'broker') return null;
-
   return (
     <div className="space-y-6">
-      <PageHeader title="Team" description="Manage your workspace members and invitations" />
+      <PageHeader
+        title="Team"
+        description="Manage your workspace members and invitations"
+      />
 
       <Card>
         <CardHeader>
@@ -56,5 +47,13 @@ export default function TeamPage() {
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+export default function TeamPage() {
+  return (
+    <RoleGuard allowedRoles={["broker"]}>
+      <TeamPageContent />
+    </RoleGuard>
   );
 }

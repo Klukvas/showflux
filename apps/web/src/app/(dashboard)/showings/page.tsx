@@ -1,14 +1,16 @@
 'use client';
 
+import { Suspense } from 'react';
 import Link from 'next/link';
 import { PageHeader } from '@/components/ui/page-header';
 import { Button } from '@/components/ui/button';
+import { Spinner } from '@/components/ui/spinner';
 import { Pagination } from '@/components/ui/pagination';
 import { useShowings } from '@/features/showings/hooks/use-showings';
 import { ShowingFiltersBar } from '@/features/showings/components/showing-filters';
 import { ShowingTable } from '@/features/showings/components/showing-table';
 
-export default function ShowingsPage() {
+function ShowingsContent() {
   const { data, isLoading, filters, setFilters } = useShowings();
 
   return (
@@ -32,5 +34,13 @@ export default function ShowingsPage() {
         />
       )}
     </div>
+  );
+}
+
+export default function ShowingsPage() {
+  return (
+    <Suspense fallback={<div className="flex justify-center py-12"><Spinner size="lg" /></div>}>
+      <ShowingsContent />
+    </Suspense>
   );
 }

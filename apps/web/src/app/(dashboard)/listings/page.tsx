@@ -1,14 +1,16 @@
 'use client';
 
+import { Suspense } from 'react';
 import Link from 'next/link';
 import { PageHeader } from '@/components/ui/page-header';
 import { Button } from '@/components/ui/button';
+import { Spinner } from '@/components/ui/spinner';
 import { Pagination } from '@/components/ui/pagination';
 import { useListings } from '@/features/listings/hooks/use-listings';
 import { ListingFiltersBar } from '@/features/listings/components/listing-filters';
 import { ListingTable } from '@/features/listings/components/listing-table';
 
-export default function ListingsPage() {
+function ListingsContent() {
   const { data, isLoading, filters, setFilters } = useListings();
 
   return (
@@ -32,5 +34,13 @@ export default function ListingsPage() {
         />
       )}
     </div>
+  );
+}
+
+export default function ListingsPage() {
+  return (
+    <Suspense fallback={<div className="flex justify-center py-12"><Spinner size="lg" /></div>}>
+      <ListingsContent />
+    </Suspense>
   );
 }

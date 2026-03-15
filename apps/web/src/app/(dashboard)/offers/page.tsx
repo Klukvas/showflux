@@ -1,14 +1,16 @@
 'use client';
 
+import { Suspense } from 'react';
 import Link from 'next/link';
 import { PageHeader } from '@/components/ui/page-header';
 import { Button } from '@/components/ui/button';
+import { Spinner } from '@/components/ui/spinner';
 import { Pagination } from '@/components/ui/pagination';
 import { useOffers } from '@/features/offers/hooks/use-offers';
 import { OfferFiltersBar } from '@/features/offers/components/offer-filters';
 import { OfferTable } from '@/features/offers/components/offer-table';
 
-export default function OffersPage() {
+function OffersContent() {
   const { data, isLoading, filters, setFilters } = useOffers();
 
   return (
@@ -32,5 +34,13 @@ export default function OffersPage() {
         />
       )}
     </div>
+  );
+}
+
+export default function OffersPage() {
+  return (
+    <Suspense fallback={<div className="flex justify-center py-12"><Spinner size="lg" /></div>}>
+      <OffersContent />
+    </Suspense>
   );
 }

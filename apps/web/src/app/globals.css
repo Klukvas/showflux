@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@plugin "@tailwindcss/typography";
 
 :root {
   --background: #ffffff;
@@ -34,6 +35,44 @@
       transform: translateX(0);
     }
   }
+
+  @keyframes fade-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  @keyframes fade-in-up {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes scale-in {
+    from {
+      opacity: 0;
+      transform: scale(0.95);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
+  @keyframes slide-in-from-bottom {
+    from {
+      opacity: 0;
+      transform: translateY(16px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
 }
 
 @utility animate-in {
@@ -42,6 +81,33 @@
 
 @utility slide-in-from-right {
   animation: slide-in-from-right 0.3s ease-out;
+}
+
+@utility fade-in {
+  animation: fade-in 0.3s ease-out;
+}
+
+@utility fade-in-up {
+  animation: fade-in-up 0.4s ease-out;
+}
+
+@utility scale-in {
+  animation: scale-in 0.2s ease-out;
+}
+
+@utility slide-in-from-bottom {
+  animation: slide-in-from-bottom 0.3s ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-in,
+  .slide-in-from-right,
+  .fade-in,
+  .fade-in-up,
+  .scale-in,
+  .slide-in-from-bottom {
+    animation: none;
+  }
 }
 
 body {

@@ -3,6 +3,7 @@ import {
   NotFoundException,
   BadRequestException,
   ConflictException,
+  ForbiddenException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import {
@@ -24,6 +25,7 @@ import { ShowingStatus } from '../common/enums/showing-status.enum.js';
 import { ActivityService } from '../activity/activity.service.js';
 import { ActivityAction } from '../common/enums/activity-action.enum.js';
 import { DashboardService } from '../dashboard/dashboard.service.js';
+import { Role } from '../common/enums/role.enum.js';
 
 @Injectable()
 export class ShowingsService {
@@ -152,9 +154,13 @@ export class ShowingsService {
     id: string,
     dto: UpdateShowingDto,
     workspaceId: string,
-    userId?: string,
+    userId: string,
+    userRole: Role,
   ): Promise<Showing> {
     const showing = await this.findById(id, workspaceId);
+    if (userRole === Role.AGENT && showing.agentId !== userId) {
+      throw new ForbiddenException('You can only edit your own showings');
+    }
     const { scheduledAt, ...rest } = dto;
     const updates: Partial<Showing> = { ...rest };
     if (scheduledAt) {

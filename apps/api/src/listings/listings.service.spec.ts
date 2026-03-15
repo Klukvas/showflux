@@ -1,5 +1,5 @@
 import { Test } from '@nestjs/testing';
-import { NotFoundException } from '@nestjs/common';
+import { NotFoundException, ForbiddenException } from '@nestjs/common';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { ListingsService } from './listings.service';
 import { Listing } from '../entities/listing.entity';
@@ -14,6 +14,7 @@ import {
   createMockDashboardService,
 } from '../test-utils/mocks';
 import { ListingStatus } from '../common/enums/listing-status.enum';
+import { Role } from '../common/enums/role.enum';
 
 describe('ListingsService', () => {
   let service: ListingsService;
@@ -193,6 +194,7 @@ describe('ListingsService', () => {
       { title: 'New' } as any,
       'ws1',
       'user1',
+      Role.BROKER,
     );
 
     expect(listingRepo.save).toHaveBeenCalled();
@@ -204,10 +206,57 @@ describe('ListingsService', () => {
     listingRepo.findOne.mockResolvedValue(existing);
     listingRepo.save.mockImplementation((l) => Promise.resolve(l));
 
-    await service.update('l1', { title: 'New' } as any, 'ws1');
+    await service.update(
+      'l1',
+      { title: 'New' } as any,
+      'ws1',
+      'user1',
+      Role.BROKER,
+    );
 
     expect(cacheService.del).toHaveBeenCalledWith('listing:l1');
     expect(dashboardService.invalidateSummary).toHaveBeenCalledWith('ws1');
+  });
+
+  it("throws ForbiddenException when agent edits another agent's listing", async () => {
+    const existing = buildListing({
+      id: 'l1',
+      workspaceId: 'ws1',
+      listingAgentId: 'other-agent',
+    });
+    cacheService.get.mockResolvedValue(null);
+    listingRepo.findOne.mockResolvedValue(existing);
+
+    await expect(
+      service.update(
+        'l1',
+        { title: 'Hijack' } as any,
+        'ws1',
+        'agent1',
+        Role.AGENT,
+      ),
+    ).rejects.toThrow(ForbiddenException);
+  });
+
+  it('allows agent to edit own listing', async () => {
+    const existing = buildListing({
+      id: 'l1',
+      workspaceId: 'ws1',
+      listingAgentId: 'agent1',
+    });
+    cacheService.get.mockResolvedValue(null);
+    listingRepo.findOne.mockResolvedValue(existing);
+    listingRepo.save.mockImplementation((l) => Promise.resolve(l));
+
+    await expect(
+      service.update(
+        'l1',
+        { title: 'My Update' } as any,
+        'ws1',
+        'agent1',
+        Role.AGENT,
+      ),
+    ).resolves.not.toThrow();
   });
 
   // ── remove ────────────────────────────────────────────────────────────

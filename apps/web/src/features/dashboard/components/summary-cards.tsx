@@ -1,13 +1,17 @@
-'use client';
+"use client";
 
-import { Card, CardContent } from '@/components/ui/card';
-import type { DashboardSummary } from '@/types/dashboard';
+import { Card, CardContent } from "@/components/ui/card";
+import type { DashboardSummary } from "@/types/dashboard";
 
 interface SummaryCardProps {
   readonly title: string;
   readonly value: number;
   readonly subtitle: string;
-  readonly color: string;
+  readonly color:
+    | "bg-blue-500"
+    | "bg-green-500"
+    | "bg-yellow-500"
+    | "bg-purple-500";
 }
 
 function SummaryCard({ title, value, subtitle, color }: SummaryCardProps) {
@@ -50,7 +54,7 @@ export function SummaryCards({ data, isLoading }: SummaryCardsProps) {
   if (!data) return null;
 
   return (
-    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 fade-in-up">
       <SummaryCard
         title="Listings"
         value={data.listings.total}

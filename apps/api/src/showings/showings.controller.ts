@@ -60,8 +60,9 @@ export class ShowingsController {
     @Body() dto: UpdateShowingDto,
     @WorkspaceId() workspaceId: string,
     @CurrentUser('id') userId: string,
+    @CurrentUser('role') userRole: Role,
   ) {
-    return this.showingsService.update(id, dto, workspaceId, userId);
+    return this.showingsService.update(id, dto, workspaceId, userId, userRole);
   }
 
   @Delete(':id')

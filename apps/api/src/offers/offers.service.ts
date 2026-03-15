@@ -3,6 +3,7 @@ import {
   NotFoundException,
   BadRequestException,
   ConflictException,
+  ForbiddenException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository, FindOptionsWhere } from 'typeorm';
@@ -17,6 +18,7 @@ import { OfferStatus } from '../common/enums/offer-status.enum.js';
 import { ActivityService } from '../activity/activity.service.js';
 import { ActivityAction } from '../common/enums/activity-action.enum.js';
 import { DashboardService } from '../dashboard/dashboard.service.js';
+import { Role } from '../common/enums/role.enum.js';
 
 @Injectable()
 export class OffersService {
@@ -111,13 +113,20 @@ export class OffersService {
     id: string,
     dto: UpdateOfferDto,
     workspaceId: string,
-    userId?: string,
+    userId: string,
+    userRole: Role,
   ): Promise<Offer> {
     if (dto.status === OfferStatus.ACCEPTED) {
+      if (userRole !== Role.BROKER) {
+        throw new ForbiddenException('Only brokers can accept offers');
+      }
       return this.acceptOffer(id, workspaceId, dto, userId);
     }
 
     const offer = await this.findById(id, workspaceId);
+    if (userRole === Role.AGENT && offer.agentId !== userId) {
+      throw new ForbiddenException('You can only edit your own offers');
+    }
     const { expirationDate, ...rest } = dto;
     const updates: Partial<Offer> = { ...rest };
     if (expirationDate) {
@@ -158,7 +167,7 @@ export class OffersService {
     id: string,
     workspaceId: string,
     dto: UpdateOfferDto,
-    userId?: string,
+    userId: string,
   ): Promise<Offer> {
     const saved = await this.dataSource.transaction(async (manager) => {
       const offer = await manager.findOne(Offer, {

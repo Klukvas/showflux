@@ -1,5 +1,9 @@
 import { Test } from '@nestjs/testing';
-import { NotFoundException, ConflictException } from '@nestjs/common';
+import {
+  NotFoundException,
+  ConflictException,
+  ForbiddenException,
+} from '@nestjs/common';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
 import { ShowingsService } from './showings.service';
@@ -15,6 +19,7 @@ import {
 } from '../test-utils/mocks';
 import { ListingStatus } from '../common/enums/listing-status.enum';
 import { ShowingStatus } from '../common/enums/showing-status.enum';
+import { Role } from '../common/enums/role.enum.js';
 
 describe('ShowingsService', () => {
   let service: ShowingsService;
@@ -255,7 +260,13 @@ describe('ShowingsService', () => {
     showingRepo.findOne.mockResolvedValue(existing);
     showingRepo.save.mockImplementation((s) => Promise.resolve(s));
 
-    await service.update('s1', { notes: 'updated' } as any, 'ws1');
+    await service.update(
+      's1',
+      { notes: 'updated' } as any,
+      'ws1',
+      'user1',
+      Role.BROKER,
+    );
 
     expect(showingRepo.save).toHaveBeenCalled();
   });
@@ -266,7 +277,13 @@ describe('ShowingsService', () => {
     showingRepo.save.mockImplementation((s) => Promise.resolve(s));
 
     const isoDate = '2026-06-15T10:00:00.000Z';
-    await service.update('s1', { scheduledAt: isoDate } as any, 'ws1');
+    await service.update(
+      's1',
+      { scheduledAt: isoDate } as any,
+      'ws1',
+      'user1',
+      Role.BROKER,
+    );
 
     const savedArg = showingRepo.save.mock.calls[0][0];
     expect(savedArg.scheduledAt).toBeInstanceOf(Date);
@@ -282,6 +299,7 @@ describe('ShowingsService', () => {
       { status: ShowingStatus.COMPLETED } as any,
       'ws1',
       'user1',
+      Role.BROKER,
     );
 
     expect(activityService.log).toHaveBeenCalled();
@@ -297,19 +315,66 @@ describe('ShowingsService', () => {
       { status: ShowingStatus.CANCELLED } as any,
       'ws1',
       'user1',
+      Role.BROKER,
     );
 
     expect(activityService.log).toHaveBeenCalled();
   });
 
-  it('update without userId does not log activity', async () => {
+  it('update with userId logs activity', async () => {
     const existing = buildShowing({ id: 's1', workspaceId: 'ws1' });
     showingRepo.findOne.mockResolvedValue(existing);
     showingRepo.save.mockImplementation((s) => Promise.resolve(s));
 
-    await service.update('s1', { notes: 'changed' } as any, 'ws1');
+    await service.update(
+      's1',
+      { notes: 'changed' } as any,
+      'ws1',
+      'user1',
+      Role.BROKER,
+    );
 
-    expect(activityService.log).not.toHaveBeenCalled();
+    expect(activityService.log).toHaveBeenCalled();
+  });
+
+  it("throws ForbiddenException when agent edits another agent's showing", async () => {
+    const existing = buildShowing({
+      id: 's1',
+      workspaceId: 'ws1',
+      agentId: 'other-agent',
+    });
+    showingRepo.findOne.mockResolvedValue(existing);
+
+    await expect(
+      service.update(
+        's1',
+        { notes: 'hack' } as any,
+        'ws1',
+        'agent1',
+        Role.AGENT,
+      ),
+    ).rejects.toThrow(ForbiddenException);
+  });
+
+  it('allows agent to edit own showing', async () => {
+    const existing = buildShowing({
+      id: 's1',
+      workspaceId: 'ws1',
+      agentId: 'agent1',
+    });
+    showingRepo.findOne.mockResolvedValue(existing);
+    showingRepo.save.mockImplementation((s) => Promise.resolve(s));
+
+    const result = await service.update(
+      's1',
+      { notes: 'my note' } as any,
+      'ws1',
+      'agent1',
+      Role.AGENT,
+    );
+
+    expect(result).toBeDefined();
+    expect(showingRepo.save).toHaveBeenCalled();
   });
 
   // ── remove ────────────────────────────────────────────────────────────

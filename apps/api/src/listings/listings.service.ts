@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ForbiddenException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import {
   Repository,
@@ -16,6 +20,7 @@ import { PaginatedResult } from '../common/interfaces/paginated.interface.js';
 import { ActivityService } from '../activity/activity.service.js';
 import { ActivityAction } from '../common/enums/activity-action.enum.js';
 import { DashboardService } from '../dashboard/dashboard.service.js';
+import { Role } from '../common/enums/role.enum.js';
 import { RedisCacheService } from '../common/cache/redis-cache.service.js';
 import {
   CACHE_KEY_PREFIX,
@@ -113,9 +118,13 @@ export class ListingsService {
     id: string,
     dto: UpdateListingDto,
     workspaceId: string,
-    userId?: string,
+    userId: string,
+    userRole: Role,
   ): Promise<Listing> {
     const listing = await this.findById(id, workspaceId);
+    if (userRole === Role.AGENT && listing.listingAgentId !== userId) {
+      throw new ForbiddenException('You can only edit your own listings');
+    }
     const updated = this.listingRepo.create({ ...listing, ...dto });
     const saved = await this.listingRepo.save(updated);
     if (userId) {

@@ -60,8 +60,9 @@ export class OffersController {
     @Body() dto: UpdateOfferDto,
     @WorkspaceId() workspaceId: string,
     @CurrentUser('id') userId: string,
+    @CurrentUser('role') userRole: Role,
   ) {
-    return this.offersService.update(id, dto, workspaceId, userId);
+    return this.offersService.update(id, dto, workspaceId, userId, userRole);
   }
 
   @Delete(':id')
