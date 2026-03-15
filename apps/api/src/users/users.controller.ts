@@ -11,6 +11,7 @@ import {
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
 import { RequiresWorkspaceGuard } from '../common/guards/workspace.guard.js';
 import { RolesGuard } from '../common/guards/roles.guard.js';
@@ -34,6 +35,7 @@ export class UsersController {
   }
 
   @Patch('me')
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
   updateProfile(
     @CurrentUser('id') userId: string,
     @Body() dto: UpdateProfileDto,
@@ -43,6 +45,7 @@ export class UsersController {
 
   @Post('me/change-password')
   @HttpCode(HttpStatus.OK)
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
   async changePassword(
     @CurrentUser('id') userId: string,
     @Body() dto: ChangePasswordDto,
@@ -68,6 +71,7 @@ export class UsersController {
   @Patch(':id/deactivate')
   @UseGuards(RequiresWorkspaceGuard, RolesGuard)
   @Roles(Role.BROKER)
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
   deactivate(
     @Param('id', ParseUUIDPipe) id: string,
     @WorkspaceId() workspaceId: string,
@@ -79,6 +83,7 @@ export class UsersController {
   @Patch(':id/reactivate')
   @UseGuards(RequiresWorkspaceGuard, RolesGuard)
   @Roles(Role.BROKER)
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
   reactivate(
     @Param('id', ParseUUIDPipe) id: string,
     @WorkspaceId() workspaceId: string,

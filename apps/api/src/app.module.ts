@@ -1,10 +1,11 @@
 import { join } from 'node:path';
-import { Module } from '@nestjs/common';
+import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { ThrottlerBehindProxyGuard } from './common/guards/throttler-behind-proxy.guard.js';
+import { RequestLoggerMiddleware } from './common/middleware/request-logger.middleware.js';
 import { AuthModule } from './auth/auth.module.js';
 import { WorkspaceModule } from './workspace/workspace.module.js';
 import { UsersModule } from './users/users.module.js';
@@ -59,6 +60,12 @@ import { Activity } from './entities/activity.entity.js';
         synchronize:
           configService.get<string>('NODE_ENV') === 'development' &&
           configService.get<string>('ALLOW_SCHEMA_SYNC') === 'true',
+        extra: {
+          max: configService.get<number>('DATABASE_POOL_MAX', 20),
+          idleTimeoutMillis: 30_000,
+          connectionTimeoutMillis: 5_000,
+          application_name: 'showflux_api',
+        },
       }),
     }),
     RedisCacheModule,
@@ -75,4 +82,8 @@ import { Activity } from './entities/activity.entity.js';
   ],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerBehindProxyGuard }],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer): void {
+    consumer.apply(RequestLoggerMiddleware).forRoutes('*');
+  }
+}

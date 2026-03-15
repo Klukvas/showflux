@@ -12,6 +12,7 @@ import {
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
 import { RequiresWorkspaceGuard } from '../common/guards/workspace.guard.js';
 import { RolesGuard } from '../common/guards/roles.guard.js';
@@ -46,6 +47,7 @@ export class OffersController {
   }
 
   @Post()
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
   create(
     @Body() dto: CreateOfferDto,
     @WorkspaceId() workspaceId: string,
@@ -55,6 +57,7 @@ export class OffersController {
   }
 
   @Patch(':id')
+  @Throttle({ default: { limit: 15, ttl: 60000 } })
   update(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateOfferDto,
@@ -68,6 +71,7 @@ export class OffersController {
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
   @Roles(Role.BROKER)
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
   remove(
     @Param('id', ParseUUIDPipe) id: string,
     @WorkspaceId() workspaceId: string,

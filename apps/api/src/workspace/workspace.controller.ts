@@ -1,4 +1,5 @@
 import { Controller, Get, Patch, Body, UseGuards } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
 import { RolesGuard } from '../common/guards/roles.guard.js';
 import { RequiresWorkspaceGuard } from '../common/guards/workspace.guard.js';
@@ -20,6 +21,7 @@ export class WorkspaceController {
 
   @Patch()
   @Roles(Role.BROKER)
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
   updateWorkspace(
     @WorkspaceId() workspaceId: string,
     @Body() dto: UpdateWorkspaceDto,

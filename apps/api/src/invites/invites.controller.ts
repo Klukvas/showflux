@@ -44,6 +44,7 @@ export class InvitesController {
   @Post()
   @UseGuards(JwtAuthGuard, RequiresWorkspaceGuard, RolesGuard)
   @Roles(Role.BROKER)
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
   async create(
     @Body() dto: CreateInviteDto,
     @WorkspaceId() workspaceId: string,
@@ -77,6 +78,7 @@ export class InvitesController {
   @HttpCode(HttpStatus.NO_CONTENT)
   @UseGuards(JwtAuthGuard, RequiresWorkspaceGuard, RolesGuard)
   @Roles(Role.BROKER)
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
   revoke(
     @Param('id', ParseUUIDPipe) id: string,
     @WorkspaceId() workspaceId: string,

@@ -6,6 +6,7 @@ import {
   HttpStatus,
   Logger,
 } from '@nestjs/common';
+import * as Sentry from '@sentry/nestjs';
 import type { Request, Response } from 'express';
 
 @Catch()
@@ -29,7 +30,8 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       typeof errorResponse === 'string'
         ? errorResponse
         : typeof errorResponse === 'object' && errorResponse !== null
-          ? (errorResponse as Record<string, unknown>).message ?? 'Internal server error'
+          ? ((errorResponse as Record<string, unknown>).message ??
+            'Internal server error')
           : 'Internal server error';
 
     const error =
@@ -37,10 +39,28 @@ export class GlobalExceptionFilter implements ExceptionFilter {
         ? exception.name
         : 'InternalServerError';
 
+    const requestId = (request as Request & { requestId?: string }).requestId;
+    const userId = (request as Request & { user?: { id?: string } }).user?.id;
+    const logContext = {
+      requestId,
+      method: request.method,
+      url: request.url,
+      userId,
+    };
+
     if (statusCode >= 500) {
+      Sentry.captureException(exception, {
+        extra: logContext,
+      });
       this.logger.error(
         `${request.method} ${request.url} ${statusCode}`,
         exception instanceof Error ? exception.stack : undefined,
+        logContext,
+      );
+    } else if (statusCode >= 400) {
+      this.logger.warn(
+        `${request.method} ${request.url} ${statusCode}`,
+        logContext,
       );
     }
 

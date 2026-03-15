@@ -10,11 +10,13 @@ const routeLabels: Record<string, string> = {
   offers: "Offers",
   team: "Team",
   settings: "Settings",
+  "how-to": "How To",
   new: "New",
   edit: "Edit",
 };
 
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export function Breadcrumbs() {
   const pathname = usePathname();
@@ -24,7 +26,8 @@ export function Breadcrumbs() {
 
   const crumbs = segments.map((segment, index) => {
     const href = "/" + segments.slice(0, index + 1).join("/");
-    const label = routeLabels[segment] ?? (UUID_RE.test(segment) ? "Detail" : segment);
+    const label =
+      routeLabels[segment] ?? (UUID_RE.test(segment) ? "Detail" : segment);
     const isLast = index === segments.length - 1;
     return { href, label, isLast };
   });
