@@ -6,12 +6,14 @@ import { Showing } from '../entities/showing.entity.js';
 import { Listing } from '../entities/listing.entity.js';
 import { ActivityModule } from '../activity/activity.module.js';
 import { DashboardModule } from '../dashboard/dashboard.module.js';
+import { PlanLimitsModule } from '../common/plan-limits/plan-limits.module.js';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Showing, Listing]),
     ActivityModule,
     DashboardModule,
+    PlanLimitsModule,
   ],
   controllers: [ShowingsController],
   providers: [ShowingsService],

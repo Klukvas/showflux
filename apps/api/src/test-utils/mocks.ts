@@ -121,6 +121,11 @@ export function createMockEmailService() {
   return {
     sendPasswordReset: jest.fn().mockResolvedValue(undefined),
     sendInvite: jest.fn().mockResolvedValue(undefined),
+    sendWelcome: jest.fn().mockResolvedValue(undefined),
+    sendTrialEndingSoon: jest.fn().mockResolvedValue(undefined),
+    sendTrialExpired: jest.fn().mockResolvedValue(undefined),
+    sendPaymentFailed: jest.fn().mockResolvedValue(undefined),
+    sendSubscriptionCanceled: jest.fn().mockResolvedValue(undefined),
   };
 }
 

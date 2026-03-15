@@ -7,6 +7,7 @@ import { useAuth } from "@/features/auth/hooks/use-auth";
 import { AuthModal } from "@/features/auth/components/auth-modal";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
+import { PricingCards } from "@/features/subscription/components/pricing-cards";
 
 type AuthTab = "login" | "register";
 
@@ -352,6 +353,23 @@ function HomeContent() {
                 </div>
               </div>
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Pricing */}
+      <section id="pricing" className="px-6 py-20">
+        <div className="mx-auto max-w-5xl">
+          <div className="text-center">
+            <h2 className="text-3xl font-bold tracking-tight text-gray-900">
+              Simple, transparent pricing
+            </h2>
+            <p className="mt-4 text-lg text-gray-600">
+              Start with a 14-day free trial. No credit card required.
+            </p>
+          </div>
+          <div className="mt-12">
+            <PricingCards onSelect={() => openAuth("register")} />
           </div>
         </div>
       </section>

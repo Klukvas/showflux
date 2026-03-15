@@ -16,9 +16,12 @@ import { Throttle } from '@nestjs/throttler';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
 import { RequiresWorkspaceGuard } from '../common/guards/workspace.guard.js';
 import { RolesGuard } from '../common/guards/roles.guard.js';
+import { ActiveSubscriptionGuard } from '../common/guards/active-subscription.guard.js';
+import { PlanLimitsGuard } from '../common/guards/plan-limits.guard.js';
 import { WorkspaceId } from '../common/decorators/workspace.decorator.js';
 import { CurrentUser } from '../common/decorators/current-user.decorator.js';
 import { Roles } from '../common/decorators/roles.decorator.js';
+import { PlanLimitResource } from '../common/decorators/plan-limit-resource.decorator.js';
 import { Role } from '../common/enums/role.enum.js';
 import { ListingsService } from './listings.service.js';
 import { CreateListingDto } from './dto/create-listing.dto.js';
@@ -47,6 +50,8 @@ export class ListingsController {
   }
 
   @Post()
+  @UseGuards(ActiveSubscriptionGuard, PlanLimitsGuard)
+  @PlanLimitResource('listings')
   @Throttle({ default: { limit: 10, ttl: 60000 } })
   create(
     @Body() dto: CreateListingDto,

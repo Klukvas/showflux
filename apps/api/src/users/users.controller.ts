@@ -1,5 +1,6 @@
 import {
   Controller,
+  Delete,
   Get,
   Patch,
   Post,
@@ -20,6 +21,7 @@ import { WorkspaceId } from '../common/decorators/workspace.decorator.js';
 import { Roles } from '../common/decorators/roles.decorator.js';
 import { Role } from '../common/enums/role.enum.js';
 import { UsersService } from './users.service.js';
+import { UsersGdprService } from './users-gdpr.service.js';
 import { UpdateProfileDto } from './dto/update-profile.dto.js';
 import { ChangePasswordDto } from './dto/change-password.dto.js';
 import { PaginationQueryDto } from '../common/dto/pagination-query.dto.js';
@@ -27,7 +29,10 @@ import { PaginationQueryDto } from '../common/dto/pagination-query.dto.js';
 @Controller('users')
 @UseGuards(JwtAuthGuard)
 export class UsersController {
-  constructor(private readonly usersService: UsersService) {}
+  constructor(
+    private readonly usersService: UsersService,
+    private readonly usersGdprService: UsersGdprService,
+  ) {}
 
   @Get('me')
   getMe(@CurrentUser('id') userId: string) {
@@ -52,6 +57,20 @@ export class UsersController {
   ) {
     await this.usersService.changePassword(userId, dto);
     return { message: 'Password changed successfully' };
+  }
+
+  @Get('me/data-export')
+  @Throttle({ default: { limit: 3, ttl: 60000 } })
+  exportData(@CurrentUser('id') userId: string) {
+    return this.usersGdprService.exportUserData(userId);
+  }
+
+  @Delete('me/data')
+  @HttpCode(HttpStatus.OK)
+  @Throttle({ default: { limit: 1, ttl: 60000 } })
+  async deleteData(@CurrentUser('id') userId: string) {
+    await this.usersGdprService.deleteUserData(userId);
+    return { message: 'Your data has been anonymized and deleted' };
   }
 
   @Get()

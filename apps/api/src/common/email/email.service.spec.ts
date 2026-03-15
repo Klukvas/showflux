@@ -134,4 +134,141 @@ describe('EmailService', () => {
       );
     });
   });
+
+  describe('sendWelcome', () => {
+    it('should send welcome email with correct subject and content', async () => {
+      mockSend.mockResolvedValue({ id: 'msg-w' });
+
+      await service.sendWelcome('user@test.com', 'John Doe', 'Acme Realty');
+
+      expect(mockSend).toHaveBeenCalledWith({
+        from: 'noreply@showflux.com',
+        to: 'user@test.com',
+        subject: 'Welcome to ShowFlux, John Doe!',
+        html: expect.stringContaining('Acme Realty'),
+      });
+    });
+
+    it('should escape HTML in fullName and workspaceName', async () => {
+      mockSend.mockResolvedValue({ id: 'msg-xss' });
+
+      await service.sendWelcome('u@t.com', '<b>X</b>', '<script>Y</script>');
+
+      const html = mockSend.mock.calls[0][0].html as string;
+      expect(html).not.toContain('<script>');
+      expect(html).not.toContain('<b>X</b>');
+    });
+
+    it('should not throw when Resend API fails', async () => {
+      mockSend.mockRejectedValue(new Error('fail'));
+
+      await expect(
+        service.sendWelcome('u@t.com', 'A', 'B'),
+      ).resolves.toBeUndefined();
+    });
+  });
+
+  describe('sendTrialEndingSoon', () => {
+    it('should send trial ending email with days left', async () => {
+      mockSend.mockResolvedValue({ id: 'msg-te' });
+
+      await service.sendTrialEndingSoon('u@t.com', 'Acme', 3);
+
+      expect(mockSend).toHaveBeenCalledWith({
+        from: 'noreply@showflux.com',
+        to: 'u@t.com',
+        subject: 'Your ShowFlux trial ends in 3 days',
+        html: expect.stringContaining('3 days'),
+      });
+    });
+
+    it('should use singular "day" when daysLeft is 1', async () => {
+      mockSend.mockResolvedValue({ id: 'msg-te1' });
+
+      await service.sendTrialEndingSoon('u@t.com', 'Acme', 1);
+
+      expect(mockSend).toHaveBeenCalledWith(
+        expect.objectContaining({
+          subject: 'Your ShowFlux trial ends in 1 day',
+        }),
+      );
+    });
+
+    it('should not throw when Resend API fails', async () => {
+      mockSend.mockRejectedValue(new Error('fail'));
+
+      await expect(
+        service.sendTrialEndingSoon('u@t.com', 'A', 2),
+      ).resolves.toBeUndefined();
+    });
+  });
+
+  describe('sendTrialExpired', () => {
+    it('should send trial expired email', async () => {
+      mockSend.mockResolvedValue({ id: 'msg-tx' });
+
+      await service.sendTrialExpired('u@t.com', 'Acme');
+
+      expect(mockSend).toHaveBeenCalledWith({
+        from: 'noreply@showflux.com',
+        to: 'u@t.com',
+        subject: 'Your ShowFlux trial has expired',
+        html: expect.stringContaining('Acme'),
+      });
+    });
+
+    it('should not throw when Resend API fails', async () => {
+      mockSend.mockRejectedValue(new Error('fail'));
+
+      await expect(
+        service.sendTrialExpired('u@t.com', 'A'),
+      ).resolves.toBeUndefined();
+    });
+  });
+
+  describe('sendPaymentFailed', () => {
+    it('should send payment failed email', async () => {
+      mockSend.mockResolvedValue({ id: 'msg-pf' });
+
+      await service.sendPaymentFailed('u@t.com', 'Acme');
+
+      expect(mockSend).toHaveBeenCalledWith({
+        from: 'noreply@showflux.com',
+        to: 'u@t.com',
+        subject: 'ShowFlux: Payment failed — action required',
+        html: expect.stringContaining('Acme'),
+      });
+    });
+
+    it('should not throw when Resend API fails', async () => {
+      mockSend.mockRejectedValue(new Error('fail'));
+
+      await expect(
+        service.sendPaymentFailed('u@t.com', 'A'),
+      ).resolves.toBeUndefined();
+    });
+  });
+
+  describe('sendSubscriptionCanceled', () => {
+    it('should send subscription canceled email', async () => {
+      mockSend.mockResolvedValue({ id: 'msg-sc' });
+
+      await service.sendSubscriptionCanceled('u@t.com', 'Acme');
+
+      expect(mockSend).toHaveBeenCalledWith({
+        from: 'noreply@showflux.com',
+        to: 'u@t.com',
+        subject: 'Your ShowFlux subscription has been canceled',
+        html: expect.stringContaining('Acme'),
+      });
+    });
+
+    it('should not throw when Resend API fails', async () => {
+      mockSend.mockRejectedValue(new Error('fail'));
+
+      await expect(
+        service.sendSubscriptionCanceled('u@t.com', 'A'),
+      ).resolves.toBeUndefined();
+    });
+  });
 });

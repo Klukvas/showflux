@@ -20,11 +20,12 @@ const securityHeaders = [
     key: "Content-Security-Policy",
     value: [
       "default-src 'self'",
-      "script-src 'self' 'unsafe-inline'",
+      "script-src 'self' 'unsafe-inline' https://*.paddle.com",
       "style-src 'self' 'unsafe-inline'",
       "img-src 'self' data: https:",
       "font-src 'self' https://fonts.gstatic.com",
-      `connect-src 'self' ${process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001"}${sentryDsn ? " https://*.sentry.io" : ""}`,
+      `connect-src 'self' ${process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001"} https://*.paddle.com${sentryDsn ? " https://*.sentry.io" : ""}`,
+      "frame-src 'self' https://*.paddle.com",
       "frame-ancestors 'none'",
       "form-action 'self'",
       "base-uri 'self'",
@@ -36,7 +37,22 @@ const securityHeaders = [
 const nextConfig: NextConfig = {
   output: "standalone",
   async headers() {
-    return [{ source: "/(.*)", headers: securityHeaders }];
+    return [
+      { source: "/(.*)", headers: securityHeaders },
+      {
+        source: "/_next/static/(.*)",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, max-age=31536000, immutable",
+          },
+        ],
+      },
+      {
+        source: "/images/(.*)",
+        headers: [{ key: "Cache-Control", value: "public, max-age=86400" }],
+      },
+    ];
   },
 };
 

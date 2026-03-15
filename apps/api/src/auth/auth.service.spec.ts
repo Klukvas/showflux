@@ -20,8 +20,10 @@ import { Workspace } from '../entities/workspace.entity';
 import { PasswordReset } from '../entities/password-reset.entity';
 import { RedisCacheService } from '../common/cache/redis-cache.service';
 import { EmailService } from '../common/email/email.service';
+import { MetricsService } from '../common/metrics/metrics.service';
 import { Role } from '../common/enums/role.enum';
 import { Plan } from '../common/enums/plan.enum';
+import { SubscriptionStatus } from '../common/enums/subscription-status.enum';
 import { buildUser, buildPasswordReset } from '../test-utils/factories';
 import {
   createMockRepository,
@@ -85,6 +87,10 @@ describe('AuthService', () => {
         { provide: DataSource, useValue: dataSource },
         { provide: RedisCacheService, useValue: redisCacheService },
         { provide: EmailService, useValue: emailService },
+        {
+          provide: MetricsService,
+          useValue: { trackEvent: jest.fn() },
+        },
       ],
     }).compile();
 
@@ -203,6 +209,70 @@ describe('AuthService', () => {
         (a: any) => a.entity === Workspace,
       ) as any;
       expect(wsCreate.data.plan).toBe(Plan.SOLO);
+    });
+
+    it('should create workspace with trialing status and trial end date', async () => {
+      (bcrypt.hash as jest.Mock).mockResolvedValue('hashed');
+      jwtService.sign.mockReturnValue('tok');
+
+      let capturedCreateArgs: unknown[] = [];
+      dataSource.transaction.mockImplementation(async (cb) => {
+        const manager = {
+          findOne: jest.fn().mockResolvedValue(null),
+          save: jest.fn().mockImplementation((v) => ({ ...v, id: 'id' })),
+          create: jest.fn().mockImplementation((_E, data) => {
+            capturedCreateArgs.push({ entity: _E, data });
+            return { ...data, id: 'id' };
+          }),
+        };
+        return cb(manager);
+      });
+
+      await service.register(registerDto);
+
+      const wsCreate = capturedCreateArgs.find(
+        (a: any) => a.entity === Workspace,
+      ) as any;
+      expect(wsCreate.data.subscriptionStatus).toBe(
+        SubscriptionStatus.TRIALING,
+      );
+      expect(wsCreate.data.trialEndsAt).toBeInstanceOf(Date);
+      const trialEnd = wsCreate.data.trialEndsAt as Date;
+      const daysUntilEnd = Math.round(
+        (trialEnd.getTime() - Date.now()) / 86_400_000,
+      );
+      expect(daysUntilEnd).toBeGreaterThanOrEqual(13);
+      expect(daysUntilEnd).toBeLessThanOrEqual(14);
+    });
+
+    it('should send welcome email after successful registration', async () => {
+      (bcrypt.hash as jest.Mock).mockResolvedValue('hashed');
+      jwtService.sign.mockReturnValue('tok');
+
+      dataSource.transaction.mockImplementation(async (cb) => {
+        const manager = {
+          findOne: jest.fn().mockResolvedValue(null),
+          save: jest.fn().mockImplementation((v) => ({
+            ...v,
+            id: v.id ?? 'user-id',
+            email: 'new@example.com',
+            fullName: 'New User',
+          })),
+          create: jest.fn().mockImplementation((_E, data) => ({
+            ...data,
+            id: data.id ?? 'ws-id',
+          })),
+        };
+        return cb(manager);
+      });
+
+      await service.register(registerDto);
+
+      expect(emailService.sendWelcome).toHaveBeenCalledWith(
+        'new@example.com',
+        'New User',
+        'My Workspace',
+      );
     });
 
     it('should create user with Role.BROKER', async () => {

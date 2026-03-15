@@ -16,9 +16,12 @@ import { Throttle } from '@nestjs/throttler';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
 import { RequiresWorkspaceGuard } from '../common/guards/workspace.guard.js';
 import { RolesGuard } from '../common/guards/roles.guard.js';
+import { ActiveSubscriptionGuard } from '../common/guards/active-subscription.guard.js';
+import { PlanLimitsGuard } from '../common/guards/plan-limits.guard.js';
 import { Roles } from '../common/decorators/roles.decorator.js';
 import { WorkspaceId } from '../common/decorators/workspace.decorator.js';
 import { CurrentUser } from '../common/decorators/current-user.decorator.js';
+import { PlanLimitResource } from '../common/decorators/plan-limit-resource.decorator.js';
 import { Role } from '../common/enums/role.enum.js';
 import { InvitesService } from './invites.service.js';
 import { CreateInviteDto } from './dto/create-invite.dto.js';
@@ -42,8 +45,15 @@ export class InvitesController {
   }
 
   @Post()
-  @UseGuards(JwtAuthGuard, RequiresWorkspaceGuard, RolesGuard)
+  @UseGuards(
+    JwtAuthGuard,
+    RequiresWorkspaceGuard,
+    RolesGuard,
+    ActiveSubscriptionGuard,
+    PlanLimitsGuard,
+  )
   @Roles(Role.BROKER)
+  @PlanLimitResource('users')
   @Throttle({ default: { limit: 5, ttl: 60000 } })
   async create(
     @Body() dto: CreateInviteDto,

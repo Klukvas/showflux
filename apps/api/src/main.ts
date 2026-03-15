@@ -47,6 +47,7 @@ async function bootstrap() {
   const winstonLogger = createWinstonLogger();
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
     logger: winstonLogger,
+    rawBody: true,
   });
   const logger = new Logger('Bootstrap');
 

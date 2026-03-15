@@ -32,6 +32,10 @@ jobs:
 
             cd ${{ secrets.APP_DIR || '/opt/showflux' }}
 
+            # Pre-deploy database backup
+            echo "Creating pre-deploy backup..."
+            bash scripts/backup-postgres.sh || echo "Backup failed (non-fatal), continuing deploy..."
+
             # Pull latest code
             git fetch origin main
             git reset --hard origin/main

@@ -16,10 +16,12 @@ import { Workspace } from '../entities/workspace.entity.js';
 import { PasswordReset } from '../entities/password-reset.entity.js';
 import { Role } from '../common/enums/role.enum.js';
 import { Plan } from '../common/enums/plan.enum.js';
+import { SubscriptionStatus } from '../common/enums/subscription-status.enum.js';
 import { RegisterDto } from './dto/register.dto.js';
 import { RedisCacheService } from '../common/cache/redis-cache.service.js';
 import { CACHE_KEY_PREFIX } from '../common/cache/redis-cache.constants.js';
 import { EmailService } from '../common/email/email.service.js';
+import { MetricsService } from '../common/metrics/metrics.service.js';
 import { BCRYPT_ROUNDS, hashToken } from '../common/utils/crypto.util.js';
 
 const DUMMY_HASH =
@@ -61,6 +63,7 @@ export class AuthService {
     private readonly dataSource: DataSource,
     private readonly redisCacheService: RedisCacheService,
     private readonly emailService: EmailService,
+    private readonly metricsService: MetricsService,
   ) {}
 
   async register(dto: RegisterDto): Promise<AuthResult> {
@@ -74,9 +77,14 @@ export class AuthService {
 
       const passwordHash = await bcrypt.hash(dto.password, BCRYPT_ROUNDS);
 
+      const trialEndsAt = new Date();
+      trialEndsAt.setDate(trialEndsAt.getDate() + 14);
+
       const workspace = manager.create(Workspace, {
         name: dto.workspaceName,
         plan: Plan.SOLO,
+        subscriptionStatus: SubscriptionStatus.TRIALING,
+        trialEndsAt,
       });
       const savedWorkspace = await manager.save(workspace);
 
@@ -97,6 +105,18 @@ export class AuthService {
         }
         throw error;
       }
+    });
+
+    this.emailService
+      .sendWelcome(savedUser.email, savedUser.fullName, dto.workspaceName)
+      .catch((err) =>
+        this.logger.warn(
+          `Welcome email dispatch failed: ${(err as Error)?.message}`,
+        ),
+      );
+
+    this.metricsService.trackEvent('user.registered', {
+      userId: savedUser.id,
     });
 
     return this.buildAuthResult(savedUser);

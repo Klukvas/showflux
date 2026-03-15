@@ -31,10 +31,12 @@
     "@nestjs/jwt": "^11.0.2",
     "@nestjs/passport": "^11.0.5",
     "@nestjs/platform-express": "^11.0.1",
+    "@nestjs/schedule": "^6.1.1",
     "@nestjs/swagger": "^11.2.6",
     "@nestjs/terminus": "^11.1.1",
     "@nestjs/throttler": "^6.5.0",
     "@nestjs/typeorm": "^11.0.0",
+    "@paddle/paddle-node-sdk": "^3.6.0",
     "@sentry/nestjs": "^10.43.0",
     "@sentry/profiling-node": "^10.43.0",
     "bcrypt": "^6.0.0",
@@ -113,9 +115,12 @@
       "!**/*.constants.ts",
       "!**/*.controller.ts",
       "!**/main.ts",
+      "!**/instrument.ts",
       "!**/data-source.ts",
       "!**/test-utils/**",
-      "!**/common/guards/throttler-behind-proxy.guard.ts"
+      "!**/common/logger/logger.config.ts",
+      "!**/common/guards/throttler-behind-proxy.guard.ts",
+      "!**/migrations/**"
     ],
     "coverageDirectory": "../coverage",
     "coverageThreshold": {

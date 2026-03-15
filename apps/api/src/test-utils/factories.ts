@@ -9,6 +9,7 @@ import { Activity } from '../entities/activity.entity';
 import { PasswordReset } from '../entities/password-reset.entity';
 import { Role } from '../common/enums/role.enum';
 import { Plan } from '../common/enums/plan.enum';
+import { SubscriptionStatus } from '../common/enums/subscription-status.enum';
 import { ListingStatus } from '../common/enums/listing-status.enum';
 import { ShowingStatus } from '../common/enums/showing-status.enum';
 import { OfferStatus } from '../common/enums/offer-status.enum';
@@ -20,8 +21,11 @@ export function buildWorkspace(overrides: Partial<Workspace> = {}): Workspace {
     id: randomUUID(),
     name: 'Test Workspace',
     plan: Plan.SOLO,
-    stripeCustomerId: null,
-    stripeSubscriptionId: null,
+    paddleCustomerId: null,
+    paddleSubscriptionId: null,
+    subscriptionStatus: SubscriptionStatus.TRIALING,
+    currentPeriodEnd: null,
+    trialEndsAt: new Date(Date.now() + 14 * 86_400_000),
     createdAt: new Date(),
     updatedAt: new Date(),
     users: [],

@@ -7,12 +7,14 @@ import { User } from '../entities/user.entity.js';
 import { Workspace } from '../entities/workspace.entity.js';
 import { ActivityModule } from '../activity/activity.module.js';
 import { EmailModule } from '../common/email/email.module.js';
+import { PlanLimitsModule } from '../common/plan-limits/plan-limits.module.js';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Invite, User, Workspace]),
     ActivityModule,
     EmailModule,
+    PlanLimitsModule,
   ],
   controllers: [InvitesController],
   providers: [InvitesService],

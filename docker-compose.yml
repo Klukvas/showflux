@@ -73,6 +73,15 @@ services:
       API_PORT: 3001
       REQUEST_TIMEOUT_MS: ${REQUEST_TIMEOUT_MS:-30000}
       SENTRY_DSN: ${SENTRY_DSN:-}
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
+      RESEND_FROM_EMAIL: ${RESEND_FROM_EMAIL:-noreply@showflux.com}
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3000}
+      PADDLE_API_KEY: ${PADDLE_API_KEY:-}
+      PADDLE_WEBHOOK_SECRET: ${PADDLE_WEBHOOK_SECRET:-}
+      PADDLE_ENVIRONMENT: ${PADDLE_ENVIRONMENT:-sandbox}
+      PADDLE_PRICE_SOLO: ${PADDLE_PRICE_SOLO:-}
+      PADDLE_PRICE_TEAM: ${PADDLE_PRICE_TEAM:-}
+      PADDLE_PRICE_AGENCY: ${PADDLE_PRICE_AGENCY:-}
     deploy:
       resources:
         limits:
@@ -93,6 +102,8 @@ services:
       NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:3001}
       NEXT_PUBLIC_SITE_URL: ${NEXT_PUBLIC_SITE_URL:-https://showflux.com}
       NEXT_PUBLIC_SENTRY_DSN: ${NEXT_PUBLIC_SENTRY_DSN:-}
+      NEXT_PUBLIC_PADDLE_CLIENT_TOKEN: ${NEXT_PUBLIC_PADDLE_CLIENT_TOKEN:-}
+      NEXT_PUBLIC_PADDLE_ENVIRONMENT: ${NEXT_PUBLIC_PADDLE_ENVIRONMENT:-sandbox}
     deploy:
       resources:
         limits:
@@ -102,3 +113,4 @@ services:
 volumes:
   postgres_data:
   redis_data:
+  backups:

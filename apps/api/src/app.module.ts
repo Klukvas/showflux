@@ -3,6 +3,7 @@ import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { ScheduleModule } from '@nestjs/schedule';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { ThrottlerBehindProxyGuard } from './common/guards/throttler-behind-proxy.guard.js';
 import { RequestLoggerMiddleware } from './common/middleware/request-logger.middleware.js';
@@ -16,7 +17,9 @@ import { InvitesModule } from './invites/invites.module.js';
 import { DashboardModule } from './dashboard/dashboard.module.js';
 import { ActivityModule } from './activity/activity.module.js';
 import { HealthModule } from './health/health.module.js';
+import { SubscriptionModule } from './subscription/subscription.module.js';
 import { RedisCacheModule } from './common/cache/redis-cache.module.js';
+import { MetricsModule } from './common/metrics/metrics.module.js';
 import { Workspace } from './entities/workspace.entity.js';
 import { User } from './entities/user.entity.js';
 import { Listing } from './entities/listing.entity.js';
@@ -32,6 +35,7 @@ import { Activity } from './entities/activity.entity.js';
       isGlobal: true,
       envFilePath: join(__dirname, '..', '..', '..', '.env'),
     }),
+    ScheduleModule.forRoot(),
     ThrottlerModule.forRoot([{ ttl: 60000, limit: 30 }]),
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
@@ -69,6 +73,7 @@ import { Activity } from './entities/activity.entity.js';
       }),
     }),
     RedisCacheModule,
+    MetricsModule,
     AuthModule,
     WorkspaceModule,
     UsersModule,
@@ -78,6 +83,7 @@ import { Activity } from './entities/activity.entity.js';
     InvitesModule,
     DashboardModule,
     ActivityModule,
+    SubscriptionModule,
     HealthModule,
   ],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerBehindProxyGuard }],

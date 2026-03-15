@@ -16,6 +16,7 @@ import { Throttle } from '@nestjs/throttler';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
 import { RequiresWorkspaceGuard } from '../common/guards/workspace.guard.js';
 import { RolesGuard } from '../common/guards/roles.guard.js';
+import { ActiveSubscriptionGuard } from '../common/guards/active-subscription.guard.js';
 import { WorkspaceId } from '../common/decorators/workspace.decorator.js';
 import { CurrentUser } from '../common/decorators/current-user.decorator.js';
 import { Roles } from '../common/decorators/roles.decorator.js';
@@ -47,6 +48,7 @@ export class OffersController {
   }
 
   @Post()
+  @UseGuards(ActiveSubscriptionGuard)
   @Throttle({ default: { limit: 10, ttl: 60000 } })
   create(
     @Body() dto: CreateOfferDto,

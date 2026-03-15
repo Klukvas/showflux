@@ -11,5 +11,11 @@ export interface ApiError {
   readonly error?: string;
 }
 
-export type Role = 'broker' | 'agent';
-export type Plan = 'solo' | 'team' | 'agency';
+export type Role = "broker" | "agent";
+export type Plan = "solo" | "team" | "agency";
+export type SubscriptionStatus =
+  | "trialing"
+  | "active"
+  | "past_due"
+  | "paused"
+  | "canceled";

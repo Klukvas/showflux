@@ -12,6 +12,7 @@
     "test:cov": "jest --coverage"
   },
   "dependencies": {
+    "@paddle/paddle-js": "^1.6.2",
     "@sentry/nextjs": "^10.43.0",
     "gray-matter": "^4.0.3",
     "next": "16.1.6",
