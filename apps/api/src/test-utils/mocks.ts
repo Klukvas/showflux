@@ -26,7 +26,11 @@ export function createMockRepository() {
 export function createMockDataSource() {
   return {
     transaction: jest.fn(
-      async (cb: (manager: ReturnType<typeof createMockTransactionManager>) => Promise<unknown>) => {
+      async (
+        cb: (
+          manager: ReturnType<typeof createMockTransactionManager>,
+        ) => Promise<unknown>,
+      ) => {
         const manager = createMockTransactionManager();
         return cb(manager);
       },
@@ -38,7 +42,9 @@ export function createMockTransactionManager() {
   return {
     findOne: jest.fn(),
     save: jest.fn().mockImplementation((entity: unknown) => entity),
-    create: jest.fn().mockImplementation((_Entity: unknown, data: unknown) => data),
+    create: jest
+      .fn()
+      .mockImplementation((_Entity: unknown, data: unknown) => data),
     update: jest.fn(),
     increment: jest.fn(),
     createQueryBuilder: jest.fn(() => ({
@@ -93,7 +99,9 @@ export function createMockRedisCacheService() {
 export function createMockActivityService() {
   return {
     log: jest.fn().mockResolvedValue(undefined),
-    findAll: jest.fn().mockResolvedValue({ data: [], total: 0, page: 1, limit: 50 }),
+    findAll: jest
+      .fn()
+      .mockResolvedValue({ data: [], total: 0, page: 1, limit: 50 }),
   };
 }
 
@@ -106,6 +114,13 @@ export function createMockDashboardService() {
       agents: { total: 0, active: 0 },
     }),
     invalidateSummary: jest.fn().mockResolvedValue(undefined),
+  };
+}
+
+export function createMockEmailService() {
+  return {
+    sendPasswordReset: jest.fn().mockResolvedValue(undefined),
+    sendInvite: jest.fn().mockResolvedValue(undefined),
   };
 }
 

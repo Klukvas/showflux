@@ -19,6 +19,7 @@ import { User } from '../entities/user.entity';
 import { Workspace } from '../entities/workspace.entity';
 import { PasswordReset } from '../entities/password-reset.entity';
 import { RedisCacheService } from '../common/cache/redis-cache.service';
+import { EmailService } from '../common/email/email.service';
 import { Role } from '../common/enums/role.enum';
 import { Plan } from '../common/enums/plan.enum';
 import { buildUser, buildPasswordReset } from '../test-utils/factories';
@@ -27,6 +28,7 @@ import {
   createMockJwtService,
   createMockConfigService,
   createMockRedisCacheService,
+  createMockEmailService,
 } from '../test-utils/mocks';
 
 describe('AuthService', () => {
@@ -38,6 +40,7 @@ describe('AuthService', () => {
   let configService: ReturnType<typeof createMockConfigService>;
   let dataSource: { transaction: jest.Mock };
   let redisCacheService: ReturnType<typeof createMockRedisCacheService>;
+  let emailService: ReturnType<typeof createMockEmailService>;
 
   beforeEach(async () => {
     userRepo = createMockRepository();
@@ -46,6 +49,7 @@ describe('AuthService', () => {
     jwtService = createMockJwtService();
     configService = createMockConfigService();
     redisCacheService = createMockRedisCacheService();
+    emailService = createMockEmailService();
 
     dataSource = {
       transaction: jest.fn(async (cb) => {
@@ -80,6 +84,7 @@ describe('AuthService', () => {
         { provide: ConfigService, useValue: configService },
         { provide: DataSource, useValue: dataSource },
         { provide: RedisCacheService, useValue: redisCacheService },
+        { provide: EmailService, useValue: emailService },
       ],
     }).compile();
 
@@ -476,6 +481,10 @@ describe('AuthService', () => {
         }),
       );
       expect(passwordResetRepo.save).toHaveBeenCalled();
+      expect(emailService.sendPasswordReset).toHaveBeenCalledWith(
+        'user@example.com',
+        expect.any(String),
+      );
     });
 
     it('should return silently when user is not found (no enumeration)', async () => {
@@ -486,6 +495,7 @@ describe('AuthService', () => {
       ).resolves.toBeUndefined();
 
       expect(passwordResetRepo.save).not.toHaveBeenCalled();
+      expect(emailService.sendPasswordReset).not.toHaveBeenCalled();
     });
   });
 

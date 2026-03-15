@@ -16,28 +16,35 @@ import { DataSource } from 'typeorm';
 import { InvitesService } from './invites.service';
 import { Invite } from '../entities/invite.entity';
 import { User } from '../entities/user.entity';
+import { Workspace } from '../entities/workspace.entity';
 import { ActivityService } from '../activity/activity.service';
+import { EmailService } from '../common/email/email.service';
 import { InviteStatus } from '../common/enums/invite-status.enum';
 import { Role } from '../common/enums/role.enum';
 import { buildInvite, buildUser } from '../test-utils/factories';
 import {
   createMockRepository,
   createMockActivityService,
+  createMockEmailService,
 } from '../test-utils/mocks';
 
 describe('InvitesService', () => {
   let service: InvitesService;
   let inviteRepo: ReturnType<typeof createMockRepository>;
   let userRepo: ReturnType<typeof createMockRepository>;
+  let workspaceRepo: ReturnType<typeof createMockRepository>;
   let dataSource: {
     transaction: jest.Mock & { _manager?: Record<string, jest.Mock> };
   };
   let activityService: ReturnType<typeof createMockActivityService>;
+  let emailService: ReturnType<typeof createMockEmailService>;
 
   beforeEach(async () => {
     inviteRepo = createMockRepository();
     userRepo = createMockRepository();
+    workspaceRepo = createMockRepository();
     activityService = createMockActivityService();
+    emailService = createMockEmailService();
 
     dataSource = {
       transaction: jest.fn(async (cb) => {
@@ -60,8 +67,10 @@ describe('InvitesService', () => {
         InvitesService,
         { provide: getRepositoryToken(Invite), useValue: inviteRepo },
         { provide: getRepositoryToken(User), useValue: userRepo },
+        { provide: getRepositoryToken(Workspace), useValue: workspaceRepo },
         { provide: DataSource, useValue: dataSource },
         { provide: ActivityService, useValue: activityService },
+        { provide: EmailService, useValue: emailService },
       ],
     }).compile();
 
@@ -171,6 +180,22 @@ describe('InvitesService', () => {
       expect(activityService.log).toHaveBeenCalledWith(
         expect.objectContaining({ workspaceId }),
       );
+    });
+
+    it('should not break create flow when email sending fails', async () => {
+      userRepo.findOne.mockResolvedValue(null);
+      workspaceRepo.findOne.mockResolvedValue({ id: 'ws-1', name: 'Test WS' });
+      emailService.sendInvite.mockRejectedValue(new Error('Resend API down'));
+      inviteRepo.create.mockImplementation((data) => data);
+      inviteRepo.save.mockImplementation((data) => ({
+        ...data,
+        id: 'invite-1',
+      }));
+
+      const result = await service.create(dto, workspaceId, invitedBy);
+
+      expect(result).toBeDefined();
+      expect(result.invite).toBeDefined();
     });
 
     it('should re-throw non-23505 database errors', async () => {

@@ -9,7 +9,7 @@ import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository, IsNull } from 'typeorm';
-import { randomBytes, randomUUID, createHash } from 'node:crypto';
+import { randomBytes, randomUUID } from 'node:crypto';
 import bcrypt from 'bcrypt';
 import { User } from '../entities/user.entity.js';
 import { Workspace } from '../entities/workspace.entity.js';
@@ -19,15 +19,12 @@ import { Plan } from '../common/enums/plan.enum.js';
 import { RegisterDto } from './dto/register.dto.js';
 import { RedisCacheService } from '../common/cache/redis-cache.service.js';
 import { CACHE_KEY_PREFIX } from '../common/cache/redis-cache.constants.js';
+import { EmailService } from '../common/email/email.service.js';
+import { BCRYPT_ROUNDS, hashToken } from '../common/utils/crypto.util.js';
 
-const BCRYPT_ROUNDS = 12;
 const DUMMY_HASH =
   '$2b$12$000000000000000000000uGlBcfGFG50mCEdvLqMgaHNJD4qjzSsO';
 const RESET_TOKEN_EXPIRY_HOURS = 1;
-
-function hashToken(raw: string): string {
-  return createHash('sha256').update(raw).digest('hex');
-}
 
 export interface JwtPayload {
   sub: string;
@@ -63,6 +60,7 @@ export class AuthService {
     private readonly configService: ConfigService,
     private readonly dataSource: DataSource,
     private readonly redisCacheService: RedisCacheService,
+    private readonly emailService: EmailService,
   ) {}
 
   async register(dto: RegisterDto): Promise<AuthResult> {
@@ -212,6 +210,11 @@ export class AuthService {
     await this.passwordResetRepo.save(reset);
 
     this.logger.log(`Password reset requested for user ${user.id}`);
+    this.emailService
+      .sendPasswordReset(email, rawToken)
+      .catch((err) =>
+        this.logger.warn(`Email dispatch failed: ${(err as Error)?.message}`),
+      );
   }
 
   async resetPassword(rawToken: string, newPassword: string): Promise<void> {

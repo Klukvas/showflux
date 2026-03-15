@@ -1,5 +1,6 @@
 import {
   Injectable,
+  Logger,
   NotFoundException,
   ConflictException,
   BadRequestException,
@@ -7,10 +8,11 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
-import { randomBytes, createHash } from 'node:crypto';
+import { randomBytes } from 'node:crypto';
 import bcrypt from 'bcrypt';
 import { Invite } from '../entities/invite.entity.js';
 import { User } from '../entities/user.entity.js';
+import { Workspace } from '../entities/workspace.entity.js';
 import { InviteStatus } from '../common/enums/invite-status.enum.js';
 import { Role } from '../common/enums/role.enum.js';
 import { CreateInviteDto } from './dto/create-invite.dto.js';
@@ -18,23 +20,25 @@ import { AcceptInviteDto } from './dto/accept-invite.dto.js';
 import { PaginatedResult } from '../common/interfaces/paginated.interface.js';
 import { ActivityService } from '../activity/activity.service.js';
 import { ActivityAction } from '../common/enums/activity-action.enum.js';
+import { EmailService } from '../common/email/email.service.js';
+import { BCRYPT_ROUNDS, hashToken } from '../common/utils/crypto.util.js';
 
-const BCRYPT_ROUNDS = 12;
 const INVITE_EXPIRY_DAYS = 7;
-
-function hashToken(raw: string): string {
-  return createHash('sha256').update(raw).digest('hex');
-}
 
 @Injectable()
 export class InvitesService {
+  private readonly logger = new Logger(InvitesService.name);
+
   constructor(
     @InjectRepository(Invite)
     private readonly inviteRepo: Repository<Invite>,
     @InjectRepository(User)
     private readonly userRepo: Repository<User>,
+    @InjectRepository(Workspace)
+    private readonly workspaceRepo: Repository<Workspace>,
     private readonly dataSource: DataSource,
     private readonly activityService: ActivityService,
+    private readonly emailService: EmailService,
   ) {}
 
   async findAll(
@@ -58,13 +62,15 @@ export class InvitesService {
     workspaceId: string,
     invitedBy: string,
   ): Promise<{ invite: Invite; rawToken: string }> {
-    const existingUser = await this.userRepo.findOne({
-      where: { email: dto.email, workspaceId },
-    });
+    const [existingUser, workspace] = await Promise.all([
+      this.userRepo.findOne({ where: { email: dto.email, workspaceId } }),
+      this.workspaceRepo.findOne({ where: { id: workspaceId } }),
+    ]);
     if (existingUser) {
       throw new ConflictException('User already exists in this workspace');
     }
 
+    const workspaceName = workspace?.name ?? 'ShowFlux';
     const rawToken = randomBytes(32).toString('hex');
     const token = hashToken(rawToken);
     const expiresAt = new Date();
@@ -91,6 +97,11 @@ export class InvitesService {
       } catch {
         // Activity logging is best-effort
       }
+      this.emailService
+        .sendInvite(dto.email, rawToken, workspaceName)
+        .catch((err) =>
+          this.logger.warn(`Email dispatch failed: ${(err as Error)?.message}`),
+        );
       return { invite: saved, rawToken };
     } catch (error: unknown) {
       const dbError = error as { code?: string };
