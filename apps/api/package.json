@@ -38,7 +38,7 @@
     "@nestjs/typeorm": "^11.0.0",
     "@paddle/paddle-node-sdk": "^3.6.0",
     "@sentry/nestjs": "^10.43.0",
-    "@sentry/profiling-node": "^10.43.0",
+    "@sentry/profiling-node": "^10.45.0",
     "bcrypt": "^6.0.0",
     "cache-manager": "^7.2.8",
     "class-transformer": "^0.5.1",
