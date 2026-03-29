@@ -1,10 +1,10 @@
-FROM node:20-alpine AS deps
+FROM node:25-alpine AS deps
 WORKDIR /app
 COPY package.json package-lock.json ./
 COPY apps/api/package.json apps/api/
 RUN npm ci --workspace=apps/api --include-workspace-root
 
-FROM node:20-alpine AS builder
+FROM node:25-alpine AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=deps /app/apps/api/node_modules ./apps/api/node_modules
@@ -12,7 +12,7 @@ COPY package.json package-lock.json ./
 COPY apps/api ./apps/api
 RUN cd apps/api && npx nest build
 
-FROM node:20-alpine AS runner
+FROM node:25-alpine AS runner
 WORKDIR /app
 ENV NODE_ENV=production
 RUN addgroup --system --gid 1001 nestjs && \
